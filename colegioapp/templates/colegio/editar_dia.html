@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<h1>Editar Día de la Semana</h1>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-success">Actualizar</button>
+    <a href="{% url 'lista_dias' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

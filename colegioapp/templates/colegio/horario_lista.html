@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container">
+    <h1>Horarios</h1>
+    
+    <form method="get" class="mb-4">
+        {{ form_filtro.as_p }}
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+    </form>
+    
+    <a href="{% url 'horario_crear' %}" class="btn btn-success mb-3">Crear Nuevo Horario</a>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Profesor</th>
+                <th>Curso</th>
+                <th>Asignatura</th>
+                <th>Día</th>
+                <th>Hora Inicio</th>
+                <th>Hora Fin</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for horario in horarios %}
+            <tr>
+                <td>{{ horario.asignacion_profesor_sede.usuario.get_full_name }}</td>
+                <td>{{ horario.curso.nombre }}</td>
+                <td>{{ horario.asignatura.nombre }}</td>
+                <td>{{ horario.dia.nombre }}</td>
+                <td>{{ horario.hora_inicio }}</td>
+                <td>{{ horario.hora_fin }}</td>
+                <td>
+                    <a href="{% url 'horario_editar' horario.pk %}" class="btn btn-primary btn-sm">Editar</a>
+                    <a href="{% url 'horario_eliminar' horario.pk %}" class="btn btn-danger btn-sm">Eliminar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

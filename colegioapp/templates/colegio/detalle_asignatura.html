@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<div class="container">
+    <h1 class="my-4">Detalles de Asignatura</h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ asignatura.nombre }}</h5>
+            <p><strong>Código:</strong> {{ asignatura.codigo }}</p>
+            <p><strong>Descripción:</strong> {{ asignatura.descripcion|default:'Sin descripción' }}</p>
+            <p><strong>Sede:</strong> {{ asignatura.sede.nombre }}</p>
+            <p><strong>Curso:</strong> {{ asignatura.curso.nombre|default:'Sin curso asignado' }}</p>
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'editar_asignatura' asignatura.pk %}" class="btn btn-warning">Editar</a>
+            <a href="{% url 'lista_asignaturas' %}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

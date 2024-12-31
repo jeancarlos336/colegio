@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container">
+    <h1>Eliminar Horario</h1>
+    <p>¿Estás seguro de que deseas eliminar el siguiente horario?</p>
+    <p>
+        Profesor: {{ horario.asignacion_profesor_sede.usuario.get_full_name }}<br>
+        Curso: {{ horario.curso.nombre }}<br>
+        Asignatura: {{ horario.asignatura.nombre }}
+    </p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirmar Eliminación</button>
+        <a href="{% url 'horario_lista' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

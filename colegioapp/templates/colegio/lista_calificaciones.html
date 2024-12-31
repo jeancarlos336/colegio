@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<div class="container">
+    <h1 class="mb-4">Mis Calificaciones</h1>
+    
+    
+    {% if calificaciones_agrupadas %}
+        {% for asignatura_curso, calificaciones in calificaciones_agrupadas.items %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">{{ asignatura_curso.0 }} - {{ asignatura_curso.1 }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Alumno</th>
+                                <th>Nota</th>
+                                <th>Semestre</th>
+                                <th>Tipo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for calificacion in calificaciones %}
+                            <tr>
+                                <td>{{ calificacion.matricula.alumno.last_name }} {{ calificacion.matricula.alumno.first_name }}</td>
+                                <td>{{ calificacion.nota }}</td>
+                                <td>{{ calificacion.semestre }}° Semestre</td>
+                                <td>{{ calificacion.get_tipo_display }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        
+                                        <a href="{% url 'eliminar_calificacion' calificacion.id %}" 
+                                           class="btn btn-sm btn-danger ms-1"
+                                           onclick="return confirm('¿Está seguro de eliminar esta calificación?');">
+                                            <i class="fas fa-trash"></i> Eliminar
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No hay calificaciones registradas para tus asignaturas.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

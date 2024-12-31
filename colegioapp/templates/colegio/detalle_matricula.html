@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container">
+    <h1>Detalles de Matrícula</h1>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Información de Matrícula</h5>
+            <p><strong>Alumno:</strong> {{ matricula.alumno.nombre_completo }}</p>
+            <p><strong>Curso:</strong> {{ matricula.curso.nombre }}</p>
+            <p><strong>Sede:</strong> {{ matricula.sede.nombre }}</p>
+            <p><strong>Año:</strong> {{ matricula.año }}</p>
+            <p><strong>Estado:</strong> {{ matricula.get_estado_display }}</p>
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'editar_matricula' matricula.pk %}" class="btn btn-warning">Editar</a>
+            <a href="{% url 'lista_matriculas' %}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

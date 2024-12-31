@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% load form_tags %}
+{% block contenido %}
+<div class="form-container fade-in"> 
+    <h2 class="form-title">Editar Matrícula</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">Guardar Matrícula</button>
+            <a href="{% url 'lista_matriculas' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

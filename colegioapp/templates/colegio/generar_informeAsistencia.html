@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load custom_tags %}
+{% block contenido %}
+<div class="form-container fade-in">
+    <h2 class="form-title">Informe de Asistencia</h2>
+    
+    {% if error %}
+    <div class="alert alert-danger">
+        {{ error }}
+    </div>
+    {% endif %}
+    
+    <form method="post" class="row g-3">
+        <div class="form-group">
+            {% csrf_token %}
+            
+            {% for field in form %}
+            <div class="col-md-4">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div class="alert alert-danger mt-1">
+                    {{ field.errors }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            <div class="col-12">
+                <button type="submit" name="ver" class="btn btn-primary">Ver Informe</button>
+                <button type="submit" name="exportar" class="btn btn-success">Exportar Excell</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Volver </a>  
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

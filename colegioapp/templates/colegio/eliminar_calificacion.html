@@ -1,0 +1,23 @@
+
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container">
+    <h1>Eliminar Calificación</h1>
+    <p>¿Estás seguro de que deseas eliminar la siguiente calificación?</p>
+    <div class="card">
+        <div class="card-body">
+            <p><strong>Alumno:</strong> {{ calificacion.matricula.alumno.nombre }} {{ calificacion.matricula.alumno.apellido }}</p>
+            <p><strong>Asignatura:</strong> {{ calificacion.asignatura }}</p>
+            <p><strong>Nota:</strong> {{ calificacion.nota }}</p>
+            <p><strong>Semestre:</strong> {{ calificacion.semestre }}</p>
+            <p><strong>Tipo:</strong> {{ calificacion.get_tipo_display }}</p>
+        </div>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirmar Eliminación</button>
+        <a href="{% url 'lista_calificaciones' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

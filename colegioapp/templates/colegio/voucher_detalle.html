@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container">
+    <h1>Voucher de Pago</h1>
+    <p><strong>Alumno:</strong> {{ pago.matricula.alumno.get_full_name }}</p>
+    <p><strong>Mes:</strong> {{ pago.get_mes_display }}</p>
+    <p><strong>Año:</strong> {{ pago.año }}</p>
+    <p><strong>Monto:</strong> ${{ pago.monto|floatformat:0 }}</p>
+    <p><strong>Fecha de Pago:</strong> {{ pago.fecha_pago|default_if_none:'Pendiente' }}</p>
+    <p><strong>Estado:</strong> {{ pago.get_estado_display }}</p>
+
+    <hr>
+    <!-- Botón para descargar el PDF -->
+    <a href="{{ pdf_url }}" target="_blank" class="btn btn-primary">Descargar PDF</a>
+
+    <!-- Botón para imprimir -->
+    <a href="{{ pdf_url }}" target="_blank" class="btn btn-secondary">Imprimir</a>
+
+    <!-- Botón para compartir en WhatsApp -->
+    <a href="{{ whatsapp_url }}" target="_blank" class="btn btn-success">Compartir en WhatsApp</a>
+</div>
+{% endblock %}

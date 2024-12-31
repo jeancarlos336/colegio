@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container">
+    <h1>Confirmar Eliminación de Matrícula</h1>
+    <form method="post">
+        {% csrf_token %}
+        <p>¿Estás seguro de que deseas eliminar la matrícula de {{ object.alumno.nombre_completo }} en el curso {{ object.curso.nombre }}?</p>
+        <button type="submit" class="btn btn-danger">Confirmar Eliminación</button>
+        <a href="{% url 'lista_matriculas' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

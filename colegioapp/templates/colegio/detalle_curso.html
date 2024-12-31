@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container">
+    <h1>Detalles del Curso</h1>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ curso.nombre }}</h5>
+            <p><strong>Nivel:</strong> {{ curso.get_nivel_display }}</p>
+            <p><strong>Año:</strong> {{ curso.año }}</p>
+            <p><strong>Sede:</strong> {{ curso.sede.nombre }}</p>
+            <p><strong>Profesor Jefe:</strong> {{ curso.profesor_jefe }}</p>
+        </div>
+    </div>
+    <div class="mt-3">
+        <a href="{% url 'editar_curso' curso.id %}" class="btn btn-warning">Editar</a>
+        <a href="{% url 'eliminar_curso' curso.id %}" class="btn btn-danger">Eliminar</a>
+        <a href="{% url 'lista_cursos' %}" class="btn btn-secondary">Volver a la Lista</a>
+    </div>
+</div>
+{% endblock %}
+

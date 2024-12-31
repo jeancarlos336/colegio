@@ -1,0 +1,40 @@
+
+{% extends 'base.html' %}
+
+{% block titulo %}Lista de Sedes{% endblock %}
+
+{% block contenido %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        Sedes
+        <a href="{% url 'crear_sede' %}" class="btn btn-primary btn-sm">Agregar Sede</a>
+    </div>
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Ciudad</th>
+                    <th>Región</th>
+                    <th>Email</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sede in sedes %}
+                <tr>
+                    <td>{{ sede.nombre }}</td>
+                    <td>{{ sede.ciudad }}</td>
+                    <td>{{ sede.region }}</td>
+                    <td>{{ sede.email }}</td>
+                    <td>
+                        <a href="{% url 'editar_sede' sede.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                        <a href="{% url 'eliminar_sede' sede.pk %}" class="btn btn-danger btn-sm">Eliminar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

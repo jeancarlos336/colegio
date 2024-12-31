@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load form_tags %}
+{% block titulo %}Editar Usuario{% endblock %}
+{% block contenido %}
+<div class="form-container fade-in">
+    <div class="card border-0 shadow">
+        <div class="card-header bg-primary text-white py-3">
+            <h2 class="mb-0 text-center h4">Editar Usuario</h2>
+        </div>
+        <div class="card-body p-4">
+            {% if messages %}
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                {% for message in messages %}
+                {{ message }}
+                {% endfor %}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
+            <form method="post" class="row g-4">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label fw-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {% if field.name == 'direccion' %}
+                            <textarea class="form-control" name="direccion" id="{{ field.id_for_label }}" 
+                                    rows="3" style="min-height: 100px">{{ field.value|default:'' }}</textarea>
+                        {% else %}
+                            {{ field|addclass:"form-control" }}
+                        {% endif %}
+                        {% if field.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in field.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="col-12 d-flex gap-3 justify-content-end mt-4">
+                    <a href="{% url 'lista_usuarios' %}" class="btn btn-light btn-lg px-4">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-save me-2"></i>Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

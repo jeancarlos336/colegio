@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load form_tags %}
+{% block titulo %}{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Sede{% endblock %}
+{% block contenido %}
+<div class="form-container fade-in">
+    <div class="card border-0 shadow">
+        <div class="card-header bg-primary text-white py-3">
+            <h2 class="mb-0 text-center h4">{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Sede</h2>
+        </div>
+        <div class="card-body p-4">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="col-12">
+                    <div class="form-group">
+                        <label class="form-label fw-medium">{{ field.label }}</label>
+                        {{ field|addclass:"form-control" }}
+                        {% if field.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in field.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="col-12 d-flex gap-3 justify-content-end mt-4">
+                    <a href="{% url 'lista_sedes' %}" class="btn btn-light btn-lg px-4">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-save me-2"></i>Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

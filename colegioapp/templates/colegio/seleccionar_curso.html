@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load form_tags %}
+{% block contenido %}
+<div class="form-container fade-in">
+
+    <h2 class="form-title">Seleccionar Curso y Asignatura</h2>
+    <form method="post" class="mt-4">
+        {% csrf_token %}
+        <div class="form-group">
+            {{ form.as_p }}
+        </div>
+        <button type="submit" class="btn btn-primary">Continuar</button>
+    </form>
+</div>
+{% endblock %}
+

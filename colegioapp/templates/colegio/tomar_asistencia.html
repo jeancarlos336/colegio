@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load form_tags %}
+{% block contenido %}
+<div class="form-container fade-in">
+    <h2 class="form-title">Registro de Asistencia</h2>
+    <h4>{{ asignatura.nombre }} - {{ asignatura.curso }}</h4>
+    
+    <form method="post" class="mt-4">
+        <div class="form-group">
+            {% csrf_token %}
+            {{ formset.management_form }}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Alumno</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form in formset %}
+                    <tr>
+                        <td>
+                            {{ form.matricula }}
+                            {{ form.instance.matricula.alumno.nombre }}
+                            {{ form.instance.matricula.alumno.apellido }}
+                        </td>
+                        <td>{{ form.estado }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="btn btn-primary">Guardar Asistencia</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

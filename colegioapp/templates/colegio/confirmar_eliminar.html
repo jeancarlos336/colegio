@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<h1>Confirmar Eliminación</h1>
+<p>¿Estás seguro de que deseas eliminar al usuario {{ usuario.get_full_name }}?</p>
+{% if messages %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+    {% for message in messages %}
+    {{ message }}
+    {% endfor %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>            
+{% endif %}
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Confirmar Eliminación</button>
+    <a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

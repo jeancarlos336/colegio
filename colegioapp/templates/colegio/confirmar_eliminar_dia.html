@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<h1>Confirmar Eliminación</h1>
+<p>¿Estás seguro de que quieres eliminar el día "{{ object.nombre }}"?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Confirmar</button>
+    <a href="{% url 'lista_dias' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

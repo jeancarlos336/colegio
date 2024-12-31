@@ -1,0 +1,16 @@
+
+<!-- form_pago.html -->
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container">
+    <h1>{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Pago de Mensualidad</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="{% url 'lista_pagos_mensualidad' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

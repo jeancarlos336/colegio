@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<h1>Detalles de Usuario</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">{{ usuario.get_full_name }}</h5>
+        <p><strong>Nombre de Usuario:</strong> {{ usuario.username }}</p>
+        <p><strong>Email:</strong> {{ usuario.email }}</p>
+        <p><strong>Rol:</strong> {{ usuario.get_rol_display }}</p>
+        <p><strong>RUT:</strong> {{ usuario.rut }}</p>
+        <p><strong>Teléfono:</strong> {{ usuario.telefono|default:"No proporcionado" }}</p>
+        <p><strong>Dirección:</strong> {{ usuario.direccion|default:"No proporcionada" }}</p>
+        <p><strong>Fecha de Nacimiento:</strong> {{ usuario.fecha_nacimiento|default:"No proporcionada" }}</p>
+    </div>
+</div>
+<a href="{% url 'editar_usuario' usuario.pk %}" class="btn btn-warning">Editar</a>
+<a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">Volver a Lista</a>
+{% endblock %}

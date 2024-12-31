@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<h1>Días de la Semana</h1>
+<a href="{% url 'crear_dia' %}" class="btn btn-primary">Agregar Día</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dia in dias %}
+        <tr>
+            <td>{{ dia.nombre }}</td>
+            <td>
+                <a href="{% url 'editar_dia' dia.pk %}" class="btn btn-warning">Editar</a>
+                <a href="{% url 'eliminar_dia' dia.pk %}" class="btn btn-danger">Eliminar</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

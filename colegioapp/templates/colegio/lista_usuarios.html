@@ -1,0 +1,38 @@
+
+{% extends "colegio/base.html" %}
+
+{% block contenido %}
+<h1>Lista de Usuarios</h1>
+<a href="{% url 'crear_usuario' %}" class="btn btn-primary mb-3">Crear Nuevo Usuario</a>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Rol</th>
+            <th>RUT</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if usuarios %}
+            {% for usuario in usuarios %}
+            <tr>
+                <td>{{ usuario.get_full_name|default:"N/A" }}</td>
+                <td>{{ usuario.get_rol_display|default:"N/A" }}</td>
+                <td>{{ usuario.rut|default:"N/A" }}</td>
+                <td>
+                    <a href="{% url 'detalle_usuario' usuario.pk %}" class="btn btn-info btn-sm">Ver</a>
+                    <a href="{% url 'editar_usuario' usuario.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                    <a href="{% url 'eliminar_usuario' usuario.pk %}" class="btn btn-danger btn-sm">Eliminar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="4" class="text-center">No se encontraron usuarios.</td>
+            </tr>
+        {% endif %}
+    </tbody>
+</table>
+{% endblock %}

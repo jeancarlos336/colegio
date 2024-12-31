@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="form-container fade-in">
+    <h2 class="form-title">Generar Informe de Notas por Alumno</h2>
+    <div class="card">
+        <div class="card-body">
+            <form method="post" id="informeNotasForm">
+                <div class="form-group">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        {{ form.curso.label_tag }}
+                        {{ form.curso }}
+                        {% if form.curso.errors %}
+                            <div class="text-danger">{{ form.curso.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.alumno.label_tag }}
+                        {{ form.alumno }}
+                        {% if form.alumno.errors %}
+                            <div class="text-danger">{{ form.alumno.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.año.label_tag }}
+                        {{ form.año }}
+                        {% if form.año.errors %}
+                            <div class="text-danger">{{ form.año.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.semestre.label_tag }}
+                        {{ form.semestre }}
+                        {% if form.semestre.errors %}
+                            <div class="text-danger">{{ form.semestre.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-file-pdf me-2"></i>
+                        Generar Informe
+                    </button>
+                    
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Volver
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% block javascript %}
+<script>
+$(document).ready(function() {
+    $("#id_curso").change(function () {
+        const url = "{% url 'ajax_load_alumnos_notas' %}";
+        const cursoId = $(this).val();
+
+        $.ajax({
+            url: url,
+            data: {
+                'curso': cursoId
+            },
+            success: function (data) {
+                let html = '<option value="">Seleccione un alumno</option>';
+                data.forEach(function(item) {
+                    html += `<option value="${item.id}">${item.alumno__first_name} ${item.alumno__last_name}</option>`
+                });
+                $("#id_alumno").html(html);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}
+

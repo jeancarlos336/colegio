@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load form_tags %}
+{% block contenido %}
+<div class="form-container fade-in">
+    
+    <h2 class="form-title">Ingresar Calificaciones</h2>
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>Asignatura: {{ asignatura.nombre }}</h5>
+            <p>Tipo de Evaluación: {{ tipo }}</p>
+            <p>Período: {{ semestre }}</p>
+            <p>Especificación: {{ especificacion }}</p>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            {{ formset.management_form }}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Alumno</th>
+                        <th>Nota</th>                    
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form, alumno_nombre in alumnos_forms %}
+                        <tr>
+                            <td>
+                                {{ alumno_nombre }}
+                                {{ form.id }}
+                                {{ form.matricula }}
+                            </td>
+                            <td>
+                                {{ form.nota }}
+                                {% if form.nota.errors %}
+                                    <div class="text-danger">
+                                        {{ form.nota.errors }}
+                                    </div>
+                                {% endif %}
+                            </td>                        
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Guardar Calificaciones</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

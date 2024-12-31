@@ -1,0 +1,39 @@
+{% extends 'base.html' %} {# Hereda de base.html #}
+
+{% block title %}Lista de Asignaciones{% endblock %} {# Define el título #}
+
+{% block contenido %} {# Define el contenido #}
+<div class="container">
+    <h1>Lista de Asignaciones</h1>
+    <a href="{% url 'asignacion_create' %}"class="btn btn-primary mb-3">Crear Nueva Asignación</a>   
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Profesor</th>
+                <th>Sede</th>
+                <th>Días Trabajados</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asignacion in asignaciones %}
+            <tr>
+                <td>{{ asignacion.usuario.get_full_name }}</td>
+                <td>{{ asignacion.sede.nombre }}</td>
+                <td>
+                  {% for dia in asignacion.dias_trabajados.all %}
+                      {{ dia }}
+                      {% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                </td>
+                <td>
+                    <a href="{% url 'asignacion_update' asignacion.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                    <a href="{% url 'asignacion_delete' asignacion.pk %}" class="btn btn-danger btn-sm">Eliminar</a>                 
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

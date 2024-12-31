@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-6">
+        Reporte de Curso: {{ curso.nombre }}
+    </h1>
+    
+    <form method="get" class="mb-6 bg-white p-4 rounded shadow">
+        {{ form.as_p }}
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">
+            Filtrar
+        </button>
+    </form>
+
+    <div class="bg-white p-4 rounded shadow">
+        <table class="w-full">
+            <thead>
+                <tr>
+                    <th class="text-left">Fecha</th>
+                    <th class="text-left">Asignatura</th>
+                    <th class="text-left">Total Alumnos</th>
+                    <th class="text-left">Presentes</th>
+                    <th class="text-left">Ausentes</th>
+                    <th class="text-left">Justificados</th>
+                    <th class="text-left">% Asistencia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for registro in resumen %}
+                <tr>
+                    <td>{{ registro.fecha_hora__date }}</td>
+                    <td>{{ registro.asignatura__nombre }}</td>
+                    <td>{{ registro.total_alumnos }}</td>
+                    <td>{{ registro.presentes }}</td>
+                    <td>{{ registro.ausentes }}</td>
+                    <td>{{ registro.justificados }}</td>
+                    <td>{{ registro.porcentaje_asistencia|floatformat:1 }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

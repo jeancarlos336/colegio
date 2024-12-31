@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load custom_tags %}
+
+{% block contenido %}
+<h1>Informe de Asistencia</h1>
+<h2>Asignatura: {{ asignatura }}, Año: {{ anio }}, Mes: {{ nombre_mes }}</h2>
+
+{% if tiene_datos %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Alumno</th>
+                {% for fecha in fechas %}
+                    <th>{{ fecha|date:"d" }}</th>
+                {% endfor %}
+                <th>% Asistencia</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alumno, asistencias in alumnos_asistencia.items %}
+            <tr>
+                <td>{{ alumno.last_name }}, {{ alumno.first_name }}</td>
+                {% for fecha in fechas %}
+                    <td>{{ asistencias|get_item:fecha }}</td>
+                {% endfor %}
+                <td>{{ estadisticas|get_item:alumno }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No hay datos de asistencia para mostrar en el período seleccionado.</p>
+{% endif %}
+{% endblock %}
+

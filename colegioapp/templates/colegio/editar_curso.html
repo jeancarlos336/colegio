@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% load form_tags %}
+{% block contenido %}
+<div class="form-container fade-in">
+    <h1 class="form-title">{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Curso</h1>
+    <form method="post">
+        <div class="form-group">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Guardar Curso</button>
+            <a href="{% url 'lista_cursos' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

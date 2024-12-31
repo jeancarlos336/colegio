@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container">
+    <h1>Pagos de Mensualidad</h1>
+    
+    <form method="get" class="mb-4">
+        {{ form_filtro.as_p }}
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+    </form>
+
+    <a href="{% url 'crear_pago_mensualidad' %}" class="btn btn-success mb-3">Registrar Nuevo Pago</a>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Alumno</th>
+                <th>Mes</th>
+                <th>Año</th>
+                <th>Monto</th>
+                <th>Fecha de Pago</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pago in pagos %}
+            <tr>
+                <td>{{ pago.matricula.alumno.get_full_name }}</td>
+                <td>{{ pago.get_mes_display }}</td>
+                <td>{{ pago.año }}</td>
+                <td>{{ pago.monto }}</td>
+                <td>{{ pago.fecha_pago|default_if_none:'-' }}</td>
+                <td>{{ pago.get_estado_display }}</td>
+                <td>
+                    <a href="{% url 'editar_pago_mensualidad' pago.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                    <a href="{% url 'eliminar_pago_mensualidad' pago.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                        <a href="{% url 'generar_voucher_pdf' pago.pk %}" class="btn btn-sm btn-info">Voucher</a>            
+                    
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7">No hay pagos de mensualidad registrados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
