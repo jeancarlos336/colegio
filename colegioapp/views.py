@@ -109,9 +109,9 @@ def dashboard(request):
                 ]
             },
             {
-                'label': 'Asignarutas',
+                'label': 'Asignaturas',
                 'url': 'lista_asignaturas',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-bookmark',
                 'submenu': [
                     {'name': 'Listar Asignatura', 'url': 'lista_asignaturas'},
                     {'name': 'Crear Asignatura', 'url': 'crear_asignatura'},
@@ -120,7 +120,7 @@ def dashboard(request):
             {
                 'label': 'Dias',
                 'url': 'lista_dias',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-calendar',
                 'submenu': [
                     {'name': 'Listar Dias', 'url': 'lista_dias'},
                     {'name': 'Crear Dias', 'url': 'crear_dia'},
@@ -129,7 +129,7 @@ def dashboard(request):
             {
                 'label': 'Matriculas',
                 'url': 'lista_matriculas',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-pencil',
                 'submenu': [
                     {'name': 'Listar Matriculas', 'url': 'lista_matriculas'},
                     {'name': 'Crear Matriculas', 'url': 'crear_matricula'},
@@ -138,7 +138,7 @@ def dashboard(request):
             {
                 'label': 'Profesor - Sede',
                 'url': 'asignacion_list',
-                'icon': 'fa-graduation-cap',
+                'icon':'bi bi-person-rolodex',
                 'submenu': [
                     {'name': 'Asignar Profesor Sede', 'url': 'asignacion_list'},
                     {'name': 'Crear Asignacion', 'url': 'asignacion_create'},
@@ -147,7 +147,7 @@ def dashboard(request):
             {
                 'label': 'Calificaciones',
                 'url': 'lista_calificaciones',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-check-square',
                 'submenu': [
                     {'name': 'Listar Calificaciones', 'url': 'lista_calificaciones'},
                     {'name': 'Asignar Calificaciones', 'url': 'seleccionar_curso_calificacion'},
@@ -156,7 +156,7 @@ def dashboard(request):
             {
                 'label': 'Horario de Clases',
                 'url': 'horario_lista',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-calendar',
                 'submenu': [
                     {'name': 'Listar Horarios', 'url': 'horario_lista'},
                     {'name': 'Crear Horaio', 'url': 'horario_crear'},
@@ -165,7 +165,7 @@ def dashboard(request):
             {
                 'label': 'Pago Escolaridad',
                 'url': 'lista_pagos_mensualidad',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-cart-arrow-down',
                 'submenu': [
                     {'name': 'Listado de Pagos', 'url': 'lista_pagos_mensualidad'},
                     {'name': 'Crear Pagos', 'url': 'crear_pago_mensualidad'},
@@ -174,7 +174,7 @@ def dashboard(request):
             {
                 'label': 'Asitencia',
                 'url': 'seleccionar_curso',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-th',
                 'submenu': [
                     {'name': 'Tomar Asistencia', 'url': 'seleccionar_curso'},                    
                 ]
@@ -182,7 +182,7 @@ def dashboard(request):
             {
                 'label': 'Informes',
                 'url': 'menu_informes',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-print',
                 'submenu': [
                     {'name': 'Informe Notas x Asignatura', 'url': 'seleccionar_parametros_informe'},
                     {'name': 'Informe Notas x Alumnos', 'url': 'seleccionar_parametros_informe_alumno'},
@@ -809,9 +809,11 @@ def eliminar_pago_mensualidad(request, pk):
 
 def generar_voucher_pdf(request, pago_id):
     pago = get_object_or_404(PagoMensualidad, id=pago_id)
-    
+    print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
+    print(f"MEDIA_URL: {settings.MEDIA_URL}")
     # Ruta para guardar temporalmente el PDF
-    pdf_path = os.path.join(settings.MEDIA_ROOT, f"vouchers/voucher_{pago.id}.pdf")
+    #pdf_path = os.path.join(settings.MEDIA_ROOT, f"vouchers/voucher_{pago.id}.pdf")
+    pdf_path = str(settings.MEDIA_ROOT / 'vouchers' / f'voucher_{pago.id}.pdf')
     os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
     
     # Crear el PDF con ReportLab
@@ -833,9 +835,12 @@ def generar_voucher_pdf(request, pago_id):
     c.drawString(50, 650 - espacio, f"Fecha de Pago: {pago.fecha_pago or 'Pendiente'}")
     c.drawString(50, 630 - espacio, f"Estado: {pago.get_estado_display()}")
     c.drawString(50, 610 - espacio, f"Generado el: {now().strftime('%d/%m/%Y')}")
-    
+    print(f"PDF Path completo: {pdf_path}")
+    print(f"Directorio existe?: {os.path.exists(os.path.dirname(pdf_path))}")
     c.showPage()
     c.save()
+    print(f"PDF creado?: {os.path.exists(pdf_path)}")
+    print(f"Permisos carpeta: {os.access(os.path.dirname(pdf_path), os.W_OK)}")
         
     # Preparar el enlace para WhatsApp
     mensaje = f"Hola, este es tu comprobante de pago de mensualidad:\n" \
@@ -850,7 +855,8 @@ def generar_voucher_pdf(request, pago_id):
     # Enviar el archivo PDF en la respuesta o permitir compartirlo
     return render(request, 'colegio/voucher_detalle.html', {
         'pago': pago,
-        'pdf_url': f"{settings.MEDIA_URL}vouchers/voucher_{pago.id}.pdf",
+        #'pdf_url': f"{settings.MEDIA_URL}vouchers/voucher_{pago.id}.pdf",
+        'pdf_url': f'/media/vouchers/voucher_{pago.id}.pdf',  # URL siempre con forward slashes
         'whatsapp_url': whatsapp_url,
     })
     
