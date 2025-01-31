@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <h2>Eliminar Evaluación</h2>
+    <div class="alert alert-danger">
+        <p>¿Estás seguro de que deseas eliminar esta evaluación?</p>
+        <p><strong>Asignatura:</strong> {{ object.asignatura.nombre }}</p>
+        <p><strong>Fecha:</strong> {{ object.fecha|date:"d/m/Y H:i" }}</p>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirmar Eliminación</button>
+        <a href="{% url 'evaluacion_list' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

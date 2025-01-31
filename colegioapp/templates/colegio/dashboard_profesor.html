@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+
+{% block contenido %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Menú Principal -->
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header bg-primary text-white d-flex align-items-center">
+                    <i class="fas fa-bars me-2"></i>
+                    <span class="fw-bold">Menú Principal</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% if user.rol == 'PROFESOR' %}
+                            {% for item in menu %}
+                                <!-- Elemento principal del menú -->
+                                <a href="#submenu-{{ forloop.counter }}" data-bs-toggle="collapse" 
+                                class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <i class="fas {{ item.icon }} me-2"></i> {{ item.label }}
+                                    </div>
+                                    <i class="fas fa-chevron-down small"></i>
+                                </a>
+                                <!-- Submenú colapsable -->
+                                <div class="collapse" id="submenu-{{ forloop.counter }}">
+                                    {% if item.submenu %}
+                                        {% for sub_item in item.submenu %}
+                                            <a href="{% url sub_item.url %}" 
+                                            class="list-group-item list-group-item-action border-0 ps-5">
+                                                {{ sub_item.name }}
+                                            </a>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido Principal -->
+        <div class="col-md-9">
+            <!-- Estadísticas Rápidas -->
+            <div class="row mb-4">
+                <div class="col-xl-6 col-md-12 mb-3">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Total Evaluaciones</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_evaluaciones }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-6 col-md-12 mb-3">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Evaluaciones este mes</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ evaluaciones_mes }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendario y Próximas Evaluaciones -->
+            <div class="row">
+                <!-- Calendario -->
+                <div class="col-lg-7">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">Calendario de Evaluaciones</h6>
+                            <div class="dropdown no-arrow">
+                                <a href="?mes={{ mes_anterior.month }}&ano={{ mes_anterior.year }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                                <span class="mx-2">{{ mes_actual|date:"F Y" }}</span>
+                                <a href="?mes={{ mes_siguiente.month }}&ano={{ mes_siguiente.year }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Lun</th>
+                                        <th>Mar</th>
+                                        <th>Mié</th>
+                                        <th>Jue</th>
+                                        <th>Vie</th>                                        
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for semana in calendario %}
+                                    <tr>
+                                        {% for dia in semana %}
+                                        <td class="{% if dia == 0 %}bg-light{% endif %} {% if dia in evaluaciones_por_dia %}has-events{% endif %}">
+                                            {% if dia != 0 %}
+                                                <div class="day-number">{{ dia }}</div>
+                                                {% if dia in evaluaciones_por_dia %}
+                                                    {% for evaluacion in evaluaciones_por_dia|get_item:dia %}
+                                                    <div class="event-indicator" data-toggle="tooltip" title="{{ evaluacion.asignatura.nombre }} - {{ evaluacion.fecha|time:'H:i' }}">
+                                                        {{ evaluacion.asignatura.nombre|truncatechars:15 }}
+                                                    </div>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Próximas Evaluaciones -->
+                <div class="col-lg-5">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Próximas Evaluaciones</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group">
+                                {% for evaluacion in proximas_evaluaciones %}
+                                <a href="{% url 'evaluacion_detail' evaluacion.pk %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">{{ evaluacion.asignatura.nombre }}</h5>
+                                        <small>{{ evaluacion.fecha|date:"d/m/Y" }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ evaluacion.fecha|time:"H:i" }} - {{ evaluacion.asignatura.curso.nombre }}</p>
+                                    {% if evaluacion.observacion %}
+                                    <small>{{ evaluacion.observacion|truncatechars:50 }}</small>
+                                    {% endif %}
+                                </a>
+                                {% empty %}
+                                <p class="text-center my-3">No hay evaluaciones próximas</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

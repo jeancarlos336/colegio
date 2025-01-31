@@ -1,14 +1,14 @@
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required,user_passes_test
-from .models import Sede, Usuario, Curso, Matricula,Asignatura,DiaSemana,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia
+from .models import Sede, Usuario,Evaluacion, Curso, Matricula,Asignatura,DiaSemana,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.contrib import messages
 from django.urls import reverse_lazy
-from .forms import UsuarioForm,EditarUsuarioForm,InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
+from .forms import UsuarioForm,EditarUsuarioForm, EvaluacionForm, InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView,DetailView,FormView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
 import os
@@ -25,7 +25,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from io import BytesIO
 from decimal import Decimal
 from django.http import JsonResponse
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from django.views import View
 from collections import defaultdict
 import calendar
@@ -33,9 +33,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from django.http import HttpResponse
 from openpyxl.utils import get_column_letter
-
-
-
+from .menus import MENUS 
+from django.core.paginator import Paginator
 
 
 def home(request):
@@ -65,229 +64,109 @@ def custom_logout_view(request):
     logout(request)
     messages.success(request, "Has cerrado sesión correctamente.")
     return redirect('login')  # Redirige a la página de login después de cerrar sesión
-
+#----------------------------------------------------------
 
 @login_required
 def dashboard(request):
-    """Vista del panel de control principal"""
+    if request.user.rol == 'PROFESOR':
+        return redirect('dashboard_profesor')
     
     # Obtener estadísticas generales para todos los roles
     total_usuarios = Usuario.objects.count()
     total_cursos = Curso.objects.count()
     total_matriculas = Matricula.objects.count()
-
-    
- 
-    # Definir los menús específicos para cada rol con la estructura correcta
-    menus = {
-        'ADMIN': [
-            {
-                'label': 'Usuarios',
-                'url': 'lista_usuarios',  # Este nombre coincide con tu urls.py
-                'icon': 'fa-users',
-                'submenu': [
-                    {'name': 'Listar Usuarios', 'url': 'lista_usuarios'},  # '/usuarios/listar/'
-                    {'name': 'Crear Usuario', 'url': 'crear_usuario'},     # '/usuarios/crear/'
-                ]
-            },
-            {
-                'label': 'Sedes',
-                'url': 'lista_sedes',  # Agregando otra sección del menú basada en tus URLs
-                'icon': 'fa-building',
-                'submenu': [
-                    {'name': 'Listar Sedes', 'url': 'lista_sedes'},
-                    {'name': 'Crear Sede', 'url': 'crear_sede'},
-                ]
-            },
-            {
-                'label': 'Cursos',
-                'url': 'lista_cursos',
-                'icon': 'fa-graduation-cap',
-                'submenu': [
-                    {'name': 'Listar Cursos', 'url': 'lista_cursos'},
-                    {'name': 'Crear Curso', 'url': 'crear_curso'},
-                ]
-            },
-            {
-                'label': 'Asignaturas',
-                'url': 'lista_asignaturas',
-                'icon': 'fa fa-bookmark',
-                'submenu': [
-                    {'name': 'Listar Asignatura', 'url': 'lista_asignaturas'},
-                    {'name': 'Crear Asignatura', 'url': 'crear_asignatura'},
-                ]
-            },
-            {
-                'label': 'Dias',
-                'url': 'lista_dias',
-                'icon': 'fa fa-calendar',
-                'submenu': [
-                    {'name': 'Listar Dias', 'url': 'lista_dias'},
-                    {'name': 'Crear Dias', 'url': 'crear_dia'},
-                ]
-            },
-            {
-                'label': 'Matriculas',
-                'url': 'lista_matriculas',
-                'icon': 'fa fa-pencil',
-                'submenu': [
-                    {'name': 'Listar Matriculas', 'url': 'lista_matriculas'},
-                    {'name': 'Crear Matriculas', 'url': 'crear_matricula'},
-                ]
-            },
-            {
-                'label': 'Profesor - Sede',
-                'url': 'asignacion_list',
-                'icon':'bi bi-person-rolodex',
-                'submenu': [
-                    {'name': 'Asignar Profesor Sede', 'url': 'asignacion_list'},
-                    {'name': 'Crear Asignacion', 'url': 'asignacion_create'},
-                ]
-            },
-            {
-                'label': 'Calificaciones',
-                'url': 'lista_calificaciones',
-                'icon': 'fa fa-check-square',
-                'submenu': [
-                    {'name': 'Listar Calificaciones', 'url': 'lista_calificaciones'},
-                    {'name': 'Asignar Calificaciones', 'url': 'seleccionar_curso_calificacion'},
-                ]
-            },
-            {
-                'label': 'Horario de Clases',
-                'url': 'horario_lista',
-                'icon': 'fa fa-calendar',
-                'submenu': [
-                    {'name': 'Listar Horarios', 'url': 'horario_lista'},
-                    {'name': 'Crear Horaio', 'url': 'horario_crear'},
-                ]
-            },
-            {
-                'label': 'Pago Escolaridad',
-                'url': 'lista_pagos_mensualidad',
-                'icon': 'fa fa-cart-arrow-down',
-                'submenu': [
-                    {'name': 'Listado de Pagos', 'url': 'lista_pagos_mensualidad'},
-                    {'name': 'Crear Pagos', 'url': 'crear_pago_mensualidad'},
-                ]
-            },
-            {
-                'label': 'Asitencia',
-                'url': 'seleccionar_curso',
-                'icon': 'fa fa-th',
-                'submenu': [
-                    {'name': 'Tomar Asistencia', 'url': 'seleccionar_curso'},                    
-                ]
-            },
-            {
-                'label': 'Informes',
-                'url': 'menu_informes',
-                'icon': 'fa fa-print',
-                'submenu': [
-                    {'name': 'Informe Notas x Asignatura', 'url': 'seleccionar_parametros_informe'},
-                    {'name': 'Informe Notas x Alumnos', 'url': 'seleccionar_parametros_informe_alumno'},
-                    {'name': 'Certificado Alumno Regular', 'url': 'certificado_form'},
-                    {'name': 'Informe de Asistencia', 'url': 'generar_informe'},
-                    
-                    
-                ]
-            }         
-        ],
-
-        'PROFESOR': [
-            {
-                'label': 'Calificaciones',
-                'url': 'lista_calificaciones',
-                'icon': 'fa-graduation-cap',
-                'submenu': [
-                    {'name': 'Listar Calificaciones', 'url': 'lista_calificaciones'},
-                    {'name': 'Asignar Calificaciones', 'url': 'seleccionar_curso_calificacion'},
-                ]
-            },
-            {
-                'label': 'Asitencia',
-                'url': 'seleccionar_curso',
-                'icon': 'fa-graduation-cap',
-                'submenu': [
-                    {'name': 'Tomar Asistencia', 'url': 'seleccionar_curso'},
-                    {'name': 'Informe de Asistencia', 'url': 'generar_informe'},                    
-                ]
-            },
-            {
-                'label': 'Informes',
-                'url': 'menu_informes',
-                'icon': 'fa-graduation-cap',
-                'submenu': [
-                    {'name': 'Informe Notas x Asignatura', 'url': 'seleccionar_parametros_informe'},
-                    {'name': 'Informe Notas x Alumnos', 'url': 'seleccionar_parametros_informe_alumno'},
-                    {'name': 'Certificado Alumno Regular', 'url': 'certificado_form'},
-                    {'name': 'Informe de Asistencia', 'url': 'generar_informe'},
-                ]
-            }         
-                 
-        ],
-        
-        
-        'SECRETARIA': [
-            {
-                'label': 'Horario de Clases',
-                'url': 'horario_lista',
-                'icon': 'fa-graduation-cap',
-                'submenu': [
-                    {'name': 'Listar Horarios', 'url': 'horario_lista'},
-                    {'name': 'Crear Horaio', 'url': 'horario_crear'},
-                ]
-            },
-            {
-                'label': 'Pago Escolaridad',
-                'url': 'lista_pagos_mensualidad',
-                'icon': 'fa-graduation-cap',
-                'submenu': [
-                    {'name': 'Listar Pagos', 'url': 'lista_pagos_mensualidad'},
-                    {'name': 'Crear Pagos', 'url': 'crear_pago_mensualidad'},
-                ]
-            },
-            {
-                'label': 'Informes',
-                'url': 'menu_informes',
-                'icon': 'fa-graduation-cap',
-                'submenu': [
-                    {'name': 'Informe Notas x Asignatura', 'url': 'seleccionar_parametros_informe'},
-                    {'name': 'Informe Notas x Alumnos', 'url': 'seleccionar_parametros_informe_alumno'},
-                    {'name': 'Certificado Alumno Regular', 'url': 'certificado_form'},
-                    {'name': 'Informe de Asistencia', 'url': 'generar_informe'},
-                    
-                ]
-            }       
-            
-        ],
-        # ... otros roles
-    }
     
     # Obtener el menú correspondiente al rol del usuario
     rol = request.user.rol
-    menu = menus.get(rol, [])
+    menu = MENUS.get(rol, [])
     
     context = {
-        # Datos estadísticos
         'total_usuarios': total_usuarios,
         'total_cursos': total_cursos,
         'total_matriculas': total_matriculas,
-        
-        
-        #datos del menu
         'menu': menu,
-        # ... resto del contexto
     }
     
-    
     return render(request, "colegio/dashboard.html", context)
+
+#-----------------------------------------------------------
+
+def es_profesor(user):
+    return user.rol == 'PROFESOR'
+
+@login_required
+@user_passes_test(es_profesor)
+def dashboard_profesor(request):
+    # Obtener fecha actual o la seleccionada
+    mes = request.GET.get('mes')
+    ano = request.GET.get('ano')
+    
+    if mes and ano:
+        fecha_actual = timezone.make_aware(datetime(int(ano), int(mes), 1))
+    else:
+        fecha_actual = timezone.now()
+
+    
+    # Obtener primer y último día del mes
+    # Obtener primer y último día del mes
+    _, ultimo_dia = calendar.monthrange(fecha_actual.year, fecha_actual.month)
+
+    if timezone.is_aware(fecha_actual):
+        primer_dia = fecha_actual.replace(day=1)
+        ultimo_dia = fecha_actual.replace(day=ultimo_dia)
+    else:
+        primer_dia = timezone.make_aware(fecha_actual.replace(day=1))
+        ultimo_dia = timezone.make_aware(fecha_actual.replace(day=ultimo_dia))
+    
+    # Obtener evaluaciones del profesor para el mes seleccionado
+
+    evaluaciones = Evaluacion.objects.filter(
+        profesor=request.user,
+        fecha__range=(primer_dia, ultimo_dia + timedelta(days=1))  # Agregamos un día más al rango
+    ).select_related('asignatura', 'asignatura__curso')
+    # Crear calendario
+    cal = calendar.monthcalendar(fecha_actual.year, fecha_actual.month)
+    cal_lunes_a_viernes = [
+        semana[:5] for semana in cal
+    ]
+    
+
+    # Organizar evaluaciones por día
+    evaluaciones_por_dia = {}
+    for evaluacion in evaluaciones:
+        dia = evaluacion.fecha.astimezone(timezone.get_current_timezone()).day
+        if dia not in evaluaciones_por_dia:
+            evaluaciones_por_dia[dia] = []
+        evaluaciones_por_dia[dia].append(evaluacion)
+    
+    # Estadísticas del profesor
+    total_evaluaciones = Evaluacion.objects.filter(profesor=request.user).count()
+    evaluaciones_mes = evaluaciones.count()
+    proximas_evaluaciones = Evaluacion.objects.filter(
+        profesor=request.user,
+        fecha__gte=timezone.now()
+    ).order_by('fecha')[:5]
+    
+    context = {
+        'calendario': cal_lunes_a_viernes,
+        'evaluaciones_por_dia': evaluaciones_por_dia,
+        'mes_actual': fecha_actual,
+        'mes_anterior': (fecha_actual.replace(day=1) - timedelta(days=1)),
+        'mes_siguiente': (fecha_actual.replace(day=28) + timedelta(days=4)).replace(day=1),
+        'total_evaluaciones': total_evaluaciones,
+        'evaluaciones_mes': evaluaciones_mes,
+        'proximas_evaluaciones': proximas_evaluaciones,
+        'menu': MENUS.get('PROFESOR', [])  # Usar el menú importado
+    }
+    
+    return render(request, 'colegio/dashboard_profesor.html', context)
+#----------------------------------------------------------
 
 #funciones de usuarios
 
 def lista_usuarios(request):
     """Vista para listar usuarios"""
-    usuarios = Usuario.objects.all()  # Obtén todos los usuarios
+    usuarios = Usuario.objects.all().order_by("rol")  # Obtén todos los usuarios
     return render(request, 'colegio/lista_usuarios.html', {'usuarios': usuarios})
 
 
@@ -428,14 +307,36 @@ def eliminar_curso(request, curso_id):
 
 #vistas asignaturas.
 
-
 @login_required
 def lista_asignaturas(request):
-    asignaturas = Asignatura.objects.all().order_by("-id")
-    return render(request, 'colegio/lista_asignaturas.html', {
-        'asignaturas': asignaturas
-    })
+    query = request.GET.get('q', '')
+    asignaturas = Asignatura.objects.all().order_by("curso__id", "nombre")
 
+    if query:
+        asignaturas = asignaturas.filter(
+            Q(nombre__icontains=query) |
+            Q(curso__nombre__icontains=query) |
+            Q(profesor__first_name__icontains=query) |  # Buscar en el nombre del profesor
+            Q(profesor__last_name__icontains=query)     # Buscar en el apellido del profesor
+        )
+
+    paginator = Paginator(asignaturas, 13)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    agrupadas_por_curso = {}
+    for asignatura in page_obj:
+        curso_nombre = asignatura.curso.nombre if asignatura.curso else "Sin curso"
+        if curso_nombre not in agrupadas_por_curso:
+            agrupadas_por_curso[curso_nombre] = []
+        agrupadas_por_curso[curso_nombre].append(asignatura)
+
+    return render(request, 'colegio/lista_asignaturas.html', {
+        'page_obj': page_obj,
+        'agrupadas_por_curso': agrupadas_por_curso,
+        'query': query,
+    })
+    
 @login_required
 def detalle_asignatura(request, pk):
     asignatura = get_object_or_404(Asignatura, pk=pk)
@@ -805,44 +706,56 @@ def eliminar_pago_mensualidad(request, pk):
     
     return render(request, 'colegio/eliminar_pago.html', {'pago': pago})
 
-
-
+#vouche de pago
 def generar_voucher_pdf(request, pago_id):
     pago = get_object_or_404(PagoMensualidad, id=pago_id)
-    print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
-    print(f"MEDIA_URL: {settings.MEDIA_URL}")
+    
     # Ruta para guardar temporalmente el PDF
-    #pdf_path = os.path.join(settings.MEDIA_ROOT, f"vouchers/voucher_{pago.id}.pdf")
     pdf_path = str(settings.MEDIA_ROOT / 'vouchers' / f'voucher_{pago.id}.pdf')
     os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
-    
+   
     # Crear el PDF con ReportLab
-    c = canvas.Canvas(pdf_path, pagesize=letter)  # Asegúrate de que el tamaño sea carta
+    c = canvas.Canvas(pdf_path, pagesize=letter)
     
-    # Título en negrita y tamaño 18
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, 750, "Pago de Mensualidad Colegio más que Vencedores")
-
-    
-    # Dejar espacio en blanco (aquí, 20 unidades por ejemplo)   
-    espacio = 30
-    # Espacio y el resto de texto
-    c.setFont("Helvetica", 12)
-    c.drawString(50, 730 - espacio, f"Alumno: {pago.matricula.alumno.get_full_name()}")
-    c.drawString(50, 710 - espacio, f"Mes: {pago.get_mes_display()}")
-    c.drawString(50, 690 - espacio, f"Año: {pago.año}")
-    c.drawString(50, 670 - espacio, f"Monto: ${pago.monto}")
-    c.drawString(50, 650 - espacio, f"Fecha de Pago: {pago.fecha_pago or 'Pendiente'}")
-    c.drawString(50, 630 - espacio, f"Estado: {pago.get_estado_display()}")
-    c.drawString(50, 610 - espacio, f"Generado el: {now().strftime('%d/%m/%Y')}")
-    print(f"PDF Path completo: {pdf_path}")
-    print(f"Directorio existe?: {os.path.exists(os.path.dirname(pdf_path))}")
-    c.showPage()
-    c.save()
-    print(f"PDF creado?: {os.path.exists(pdf_path)}")
-    print(f"Permisos carpeta: {os.access(os.path.dirname(pdf_path), os.W_OK)}")
+    try:
+        # Configuración inicial
+        c.setTitle(f"Voucher de Pago - {pago.matricula.alumno.get_full_name()}")
         
-    # Preparar el enlace para WhatsApp
+        # Título
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(50, 750, "Pago de Mensualidad Colegio más que Vencedores")
+        
+        # Contenido
+        c.setFont("Helvetica", 12)
+        y_position = 700  # Posición inicial Y
+        
+        # Lista de elementos a escribir
+        elementos = [
+            f"Alumno: {pago.matricula.alumno.get_full_name()}",
+            f"Mes: {pago.get_mes_display()}",
+            f"Año: {pago.año}",
+            f"Monto: ${pago.monto}",
+            f"Fecha de Pago: {pago.fecha_pago or 'Pendiente'}",
+            f"Estado: {pago.get_estado_display()}",
+            f"Generado el: {now().strftime('%d/%m/%Y')}"
+        ]
+        
+        # Escribir cada elemento
+        for elemento in elementos:
+            c.drawString(50, y_position, elemento)
+            y_position -= 25  # Espaciado entre líneas
+        
+        # Finalizar el PDF
+        c.showPage()
+        c.save()
+        
+        print(f"PDF generado exitosamente en: {pdf_path}")
+        
+    except Exception as e:
+        print(f"Error generando PDF: {str(e)}")
+        raise
+    
+    # Resto de tu código para WhatsApp y render...
     mensaje = f"Hola, este es tu comprobante de pago de mensualidad:\n" \
               f"Colegio mas que vencedores:\n" \
               f"Alumno: {pago.matricula.alumno.get_full_name()}\n" \
@@ -851,16 +764,66 @@ def generar_voucher_pdf(request, pago_id):
               f"Estado: {pago.get_estado_display()}\n" \
               f"Fecha de Pago: {pago.fecha_pago or 'Pendiente'}"
     whatsapp_url = f"https://wa.me/?{urlencode({'text': mensaje})}"
-    
-    # Enviar el archivo PDF en la respuesta o permitir compartirlo
+   
     return render(request, 'colegio/voucher_detalle.html', {
         'pago': pago,
-        #'pdf_url': f"{settings.MEDIA_URL}vouchers/voucher_{pago.id}.pdf",
-        'pdf_url': f'/media/vouchers/voucher_{pago.id}.pdf',  # URL siempre con forward slashes
+        'pdf_url': f'/pdf/{pago.id}/',
         'whatsapp_url': whatsapp_url,
     })
     
 #ASITENCIA
+
+
+class ListarAsistenciaView(ListView):
+    model = RegistroAsistencia
+    template_name = 'colegio/listar_asistencia.html'
+    context_object_name = 'asistencias'
+    paginate_by = 50
+
+    def get_queryset(self):
+        queryset = RegistroAsistencia.objects.select_related(
+            'matricula__curso',
+            'matricula__alumno',
+            'asignatura'
+        )
+
+        buscar = self.request.GET.get('buscar', '')
+        if buscar:
+            queryset = queryset.filter(
+                Q(matricula__alumno__first_name__icontains=buscar) |
+                Q(matricula__alumno__last_name__icontains=buscar) |
+                Q(matricula__alumno__rut__icontains=buscar) |
+                Q(asignatura__nombre__icontains=buscar) |
+                Q(estado__icontains=buscar) |
+                Q(fecha_hora__icontains=buscar)
+            )
+
+        return queryset.order_by(
+            'matricula__curso__nombre',
+            '-fecha_hora',
+            'matricula__alumno__last_name'
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['buscar'] = self.request.GET.get('buscar', '')
+        
+        # Agrupar asistencias por curso
+        asistencias_por_curso = {}
+        for asistencia in context['asistencias']:
+            curso_nombre = asistencia.matricula.curso.nombre
+            if curso_nombre not in asistencias_por_curso:
+                asistencias_por_curso[curso_nombre] = []
+            asistencias_por_curso[curso_nombre].append(asistencia)
+        
+        context['asistencias_por_curso'] = asistencias_por_curso
+        return context
+
+class EliminarAsistenciaView(DeleteView):
+    model = RegistroAsistencia
+    success_url = reverse_lazy('listar_asistencia')
+    template_name = 'colegio/confirmar_eliminar_asistencia.html'
+
 @login_required
 def seleccionar_curso(request):
     if request.method == 'POST':
@@ -928,7 +891,7 @@ def seleccionar_curso_calificacion(request):
     # Renderizamos la plantilla con el formulario para que el usuario lo complete
     return render(request, 'colegio/seleccionar_curso_calificacion.html', {'form': form})
 
-
+#-----------------------------------------------------------------------
 @login_required
 def ingresar_calificaciones(request):
     # Recuperamos los datos seleccionados en la vista anterior
@@ -936,74 +899,73 @@ def ingresar_calificaciones(request):
     tipo = request.session.get('calificacion_tipo')
     semestre = request.session.get('calificacion_semestre')
     especificacion = request.session.get('calificacion_especificacion')
-
-    if not all([asignatura_id, tipo, semestre]):  # Quitamos la validación estricta de especificación
-        return redirect('seleccionar_curso_calificacion')
     
+    if not all([asignatura_id, tipo, semestre]):
+        return redirect('seleccionar_curso_calificacion')
+   
     asignatura = Asignatura.objects.get(id=asignatura_id)
     matriculas = Matricula.objects.filter(
         curso=asignatura.curso,
         estado='ACTIVO'
     ).select_related('alumno').order_by('alumno__last_name', 'alumno__first_name')
-
-    # Ignorar la especificación al buscar las calificaciones
-    calificaciones = Calificacion.objects.filter(
-        asignatura=asignatura,
-        tipo=tipo,
-        semestre=semestre
-    )
+    
+    # Preparar calificaciones para cada alumno
+    calificaciones_existentes = []
+    for matricula in matriculas:
+        calificacion, _ = Calificacion.objects.get_or_create(
+            matricula=matricula,
+            asignatura=asignatura,
+            tipo=tipo,
+            semestre=semestre,
+            defaults={
+                'profesor': request.user,
+                'especificacion': especificacion,
+                'nota': None
+            }
+        )
+        calificaciones_existentes.append(calificacion)
 
     if request.method == 'POST':
-        formset = CalificacionFormSet(request.POST, queryset=calificaciones)
-        if formset.is_valid():
-            instances = formset.save(commit=False)
-            for instance in instances:
-                instance.asignatura = asignatura
-                instance.profesor = request.user
-                instance.tipo = tipo
-                instance.semestre = semestre
-                # Sigue guardando la especificación si existe
-                instance.especificacion = especificacion
-                instance.save()
-            messages.success(request, 'Calificaciones guardadas correctamente')
+        if 'guardar' in request.POST:
+            formset = CalificacionFormSet(
+                request.POST, 
+                queryset=Calificacion.objects.filter(id__in=[c.id for c in calificaciones_existentes])
+            )
+            if formset.is_valid():
+                instances = formset.save(commit=False)
+                for instance in instances:
+                    instance.profesor = request.user
+                    instance.save()
+                messages.success(request, 'Calificaciones guardadas correctamente')
+                return redirect('dashboard')
+        else:
+            # Si se cancela, eliminamos las calificaciones que no tienen nota
+            Calificacion.objects.filter(
+                id__in=[c.id for c in calificaciones_existentes],
+                nota__isnull=True
+            ).delete()
             return redirect('dashboard')
-    else:
-        # Crear calificaciones por defecto si no existen
-        if not calificaciones.exists():
-            for matricula in matriculas:
-                Calificacion.objects.get_or_create(
-                    matricula=matricula,
-                    asignatura=asignatura,
-                    profesor=request.user,
-                    tipo=tipo,
-                    semestre=semestre,
-                    # Especificación aún puede ser asignada al crear
-                    defaults={'nota': 1.0, 'especificacion': especificacion}
-                )
-            calificaciones = Calificacion.objects.filter(
-                asignatura=asignatura,
-                tipo=tipo,
-                semestre=semestre
-            ).order_by('matricula__alumno__last_name', 'matricula__alumno__first_name')
-        
-        formset = CalificacionFormSet(queryset=calificaciones)
+
+    # Crear el formset con las calificaciones existentes
+    formset = CalificacionFormSet(
+        queryset=Calificacion.objects.filter(id__in=[c.id for c in calificaciones_existentes])
+    )
     
     # Asociar formularios con nombres de estudiantes
     alumnos_forms = []
-    for form in formset:
-        nombre_completo = f"{form.instance.matricula.alumno.last_name} {form.instance.matricula.alumno.first_name}"
+    for form, matricula in zip(formset.forms, matriculas):
+        nombre_completo = f"{matricula.alumno.last_name} {matricula.alumno.first_name}"
         alumnos_forms.append((form, nombre_completo))
-    
+
     return render(request, 'colegio/ingresar_calificaciones.html', {
         'formset': formset,
         'alumnos_forms': alumnos_forms,
         'asignatura': asignatura,
         'tipo': dict(Calificacion.TIPO_CHOICES)[tipo],
         'semestre': f"{semestre}° Semestre",
-        'especificacion': especificacion  # Sigue siendo visible pero no afecta la búsqueda
+        'especificacion': especificacion
     })
-
-
+#-------------------------------------------------------------------
 # vistas de informes de notas
 
 def es_profesor(user):
@@ -1025,29 +987,6 @@ def seleccionar_parametros_informe(request):
     return render(request, 'colegio/seleccionar_parametros.html', {
         'form': form
     })
-
-
-def seleccionar_parametros_informe(request):
-    if request.method == 'POST':
-        form = ParametrosInformeForm(request.user, request.POST)
-        if form.is_valid():           
-            asignatura_id = form.cleaned_data['asignatura'].id
-            año = form.cleaned_data['año']
-            semestre = form.cleaned_data['semestre']
-            return redirect(
-                'generar_informe_notas',               
-                asignatura_id=asignatura_id,
-                año=año,
-                semestre=semestre
-            )
-    else:
-        form = ParametrosInformeForm(request.user)
-    
-    return render(request, 'colegio/seleccionar_parametros.html', {
-        'form': form
-    })
-
-
 
 @login_required
 @user_passes_test(es_profesor)
@@ -1589,4 +1528,65 @@ def generar_informe(request):
     
     return render(request, 'colegio/generar_informeAsistencia.html', {'form': form})
 
+#agendar evaluaciones
 
+
+class EvaluacionCreateView(LoginRequiredMixin, CreateView):
+    model = Evaluacion
+    form_class = EvaluacionForm
+    template_name = 'colegio/evaluacion_form.html'
+    success_url = reverse_lazy('evaluacion_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['profesor'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.profesor = self.request.user
+        try:
+            messages.success(self.request, 'Evaluación agendada exitosamente')
+            return super().form_valid(form)
+        except ValidationError as e:
+            form.add_error(None, e)
+            return self.form_invalid(form)
+
+class EvaluacionListView(LoginRequiredMixin, ListView):
+    model = Evaluacion
+    template_name = 'colegio/evaluacion_list.html'
+    context_object_name = 'evaluaciones'
+
+    def get_queryset(self):
+        return Evaluacion.objects.filter(profesor=self.request.user).order_by("-id")
+
+class EvaluacionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Evaluacion
+    form_class = EvaluacionForm
+    template_name = 'colegio/evaluacion_form.html'
+    success_url = reverse_lazy('evaluacion_list')
+
+    def test_func(self):
+        evaluacion = self.get_object()
+        return self.request.user == evaluacion.profesor
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['profesor'] = self.request.user
+        return kwargs
+
+class EvaluacionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Evaluacion
+    template_name = 'colegio/evaluacion_confirm_delete.html'
+    success_url = reverse_lazy('evaluacion_list')
+
+    def test_func(self):
+        evaluacion = self.get_object()
+        return self.request.user == evaluacion.profesor
+
+class EvaluacionDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = Evaluacion
+    template_name = 'colegio/evaluacion_detail.html'
+
+    def test_func(self):
+        evaluacion = self.get_object()
+        return self.request.user == evaluacion.profesor

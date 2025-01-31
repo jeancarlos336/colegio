@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <h2>Detalles de la Evaluación</h2>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ evaluacion.asignatura.nombre }}</h5>
+            <p class="card-text"><strong>Fecha:</strong> {{ evaluacion.fecha|date:"d/m/Y H:i" }}</p>
+            <p class="card-text"><strong>Observación:</strong> {{ evaluacion.observacion }}</p>
+            <p class="card-text"><strong>Curso:</strong> {{ evaluacion.asignatura.curso }}</p>
+            <a href="{% url 'evaluacion_update' evaluacion.pk %}" class="btn btn-warning">Editar</a>
+            <a href="{% url 'evaluacion_delete' evaluacion.pk %}" class="btn btn-danger">Eliminar</a>
+            <a href="{% url 'evaluacion_list' %}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,12 +1,11 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Usuario, Sede, Curso, Asignatura, DiaSemana, Matricula,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia,RegistroAsistencia, Asignatura
+from .models import Usuario, Sede,Evaluacion, Curso, Asignatura, DiaSemana, Matricula,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia,RegistroAsistencia, Asignatura
 from datetime import datetime, date
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.forms import modelformset_factory,formset_factory
 from calendar import month_name
-
 
 
 class SedeForm(forms.ModelForm):
@@ -202,18 +201,21 @@ class HorarioForm(forms.ModelForm):
     class Meta:
         model = Horario
         fields = [
-            'asignacion_profesor_sede', 
-            'curso', 
-            'asignatura', 
-            'dia', 
-            'hora_inicio', 
+            'asignacion_profesor_sede',
+            'curso',
+            'asignatura',
+            'dia',
+            'hora_inicio',
             'hora_fin'
         ]
+        labels = {
+            'asignacion_profesor_sede': 'Profesor'  # Aquí cambias la etiqueta
+        }
         widgets = {
             'hora_inicio': forms.TimeInput(attrs={'type': 'time'}),
             'hora_fin': forms.TimeInput(attrs={'type': 'time'}),
         }
-
+        
 class HorarioFiltroForm(forms.Form):
     curso = forms.ModelChoiceField(
         queryset=Curso.objects.all(), 
@@ -384,7 +386,6 @@ class CalificacionSeleccionForm(forms.Form):
             self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=usuario)
             
 
-
 class CalificacionForm(forms.ModelForm):
     class Meta:
         model = Calificacion
@@ -395,24 +396,21 @@ class CalificacionForm(forms.ModelForm):
                 'step': '0.1',
                 'min': '1.0',
                 'max': '7.0'
-            })
+            }),
+            'matricula': forms.HiddenInput()
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['matricula'] = forms.ModelChoiceField(
-            queryset=Matricula.objects.filter(estado='ACTIVO').select_related('alumno'),
-            to_field_name='id',
-            label='Alumno',
-            widget=forms.HiddenInput()  # Ocultamos este campo ya que se llenará automáticamente
-        )
+        if 'matricula' in self.initial:
+            self.fields['matricula'].initial = self.initial['matricula']
 
 CalificacionFormSet = forms.modelformset_factory(
     Calificacion,
     form=CalificacionForm,
-    extra=0
+    extra=0,
+    can_delete=False
 )
-
   
 #informes de notas x semestre
 
@@ -570,4 +568,31 @@ class InformeAsistenciaForm(forms.Form):
                     fecha_actual.year - 2
                 ))
         
+        return cleaned_data
+    
+
+#agenda evaluaciones
+class EvaluacionForm(forms.ModelForm):
+    class Meta:
+        model = Evaluacion
+        fields = ['asignatura', 'fecha', 'observacion']
+        widgets = {
+            'fecha': forms.DateTimeInput(
+                attrs={'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M'
+            ),
+            'observacion': forms.Textarea(attrs={'rows': 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        profesor = kwargs.pop('profesor', None)
+        super().__init__(*args, **kwargs)
+        if profesor:
+            self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=profesor)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        fecha = cleaned_data.get('fecha')
+        if fecha and fecha < timezone.now():
+            raise ValidationError('La fecha de evaluación no puede ser en el pasado')
         return cleaned_data

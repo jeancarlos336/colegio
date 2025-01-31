@@ -16,13 +16,18 @@ Including another URLconf
 """
 
 
+
+
+
 from django.contrib import admin
+import os
+from django.http import FileResponse, HttpResponse
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from colegioapp.views import (
     # Auth views
-    home, CustomLoginView, custom_logout_view, dashboard,
+    home, CustomLoginView, custom_logout_view, dashboard, dashboard_profesor,
     
     # Usuario views
     crear_usuario, detalle_usuario, editar_usuario, eliminar_usuario, lista_usuarios,
@@ -59,7 +64,10 @@ from colegioapp.views import (
     eliminar_pago_mensualidad, generar_voucher_pdf,
     
     # Asistencia views
-    tomar_asistencia, seleccionar_curso,
+    tomar_asistencia, seleccionar_curso,ListarAsistenciaView, EliminarAsistenciaView,
+
+    #evaluciones
+    EvaluacionListView, EvaluacionCreateView, EvaluacionDetailView, EvaluacionUpdateView, EvaluacionDeleteView,   
     
     # Informes views
     seleccionar_parametros_informe,
@@ -72,6 +80,12 @@ from colegioapp.views import (
     generar_informe,
     
 )
+
+def serve_pdf(request, pago_id):
+    pdf_path = os.path.join(settings.MEDIA_ROOT, f'vouchers/voucher_{pago_id}.pdf')
+    if os.path.exists(pdf_path):
+        return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf')
+    return HttpResponse('PDF no encontrado', status=404)
 
 urlpatterns = [
     # Admin
@@ -151,6 +165,8 @@ urlpatterns = [
     # Asistencia URLs
     path('asistencia/seleccionar/', seleccionar_curso, name='seleccionar_curso'),
     path('asistencia/tomar/', tomar_asistencia, name='tomar_asistencia'),
+    path('asistencia/', ListarAsistenciaView.as_view(), name='listar_asistencia'),
+    path('asistencia/eliminar/<int:pk>/', EliminarAsistenciaView.as_view(), name='eliminar_asistencia'),
 
     # Informes URLs
    
@@ -169,11 +185,23 @@ urlpatterns = [
     
     #asistencia
     path('generar_informe/', generar_informe, name='generar_informe'),
+    
+    path('pdf/<int:pago_id>/', serve_pdf, name='serve_pdf'),
+   
+   
+   #evalucioens
+    path('evaluaciones/', EvaluacionListView.as_view(), name='evaluacion_list'),
+    path('evaluaciones/crear/', EvaluacionCreateView.as_view(), name='evaluacion_create'),
+    path('evaluaciones/<int:pk>/', EvaluacionDetailView.as_view(), name='evaluacion_detail'),
+    path('evaluaciones/<int:pk>/editar/', EvaluacionUpdateView.as_view(), name='evaluacion_update'),
+    path('evaluaciones/<int:pk>/eliminar/', EvaluacionDeleteView.as_view(), name='evaluacion_delete'),
+
+
+    path('dashboard/profesor/', dashboard_profesor, name='dashboard_profesor'),
+
    
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-# Añade estas URLs en la lista urlpatterns
 

@@ -6,6 +6,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 
 
+
+
 # Modelo para los días de la semana
 class DiaSemana(models.Model):
     nombre = models.CharField(
@@ -46,6 +48,7 @@ class Usuario(AbstractUser):
         ('ALUMNO', 'Alumno'),
         ('APODERADO', 'Apoderado'),
         ('SECRETARIA', 'Secretaria'),
+        ('DIRECTOR', 'Director'),
     )
     
     rol = models.CharField(max_length=20, choices=ROLES)
@@ -158,14 +161,17 @@ class Calificacion(models.Model):
     nota = models.DecimalField(
         max_digits=4,
         decimal_places=2,
-        validators=[MinValueValidator(1.0), MaxValueValidator(7.0)]
+        validators=[MinValueValidator(1.0), MaxValueValidator(7.0)],
+        null=True,  # Permite valores nulos en la base de datos
+        blank=True  # Hace que sea opcional en formularios
     )
     semestre = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(2)])
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
-    especificacion = models.CharField(max_length=255, null=True)
-   
+    especificacion = models.CharField(max_length=255, null=True, blank=True)  # Por consistencia
+     
     class Meta:
         unique_together = ('matricula', 'asignatura', 'semestre', 'tipo')
+
 
 
 # Modelo de Apoderado
@@ -250,3 +256,30 @@ class PagoMensualidad(models.Model):
     def __str__(self):
         return f"{self.matricula.alumno.get_full_name()} - {self.mes} {self.año} - {self.estado}"
 
+
+class Evaluacion(models.Model):
+    asignatura = models.ForeignKey(
+        'Asignatura', 
+        on_delete=models.CASCADE,
+        related_name='evaluaciones'
+    )
+    fecha = models.DateTimeField()
+    observacion = models.TextField(blank=True)
+    profesor = models.ForeignKey(
+        'Usuario',
+        on_delete=models.CASCADE,
+        related_name='evaluaciones'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    
+    def clean(self):
+        if self.fecha and self.fecha < timezone.now():
+            raise ValidationError('La fecha de evaluación no puede ser en el pasado')
+        if hasattr(self, 'profesor') and hasattr(self, 'asignatura') and self.asignatura and self.profesor != self.asignatura.profesor:
+            raise ValidationError('Solo el profesor asignado puede crear evaluaciones para esta asignatura')
+
+    def __str__(self):
+        return f"Evaluación de {self.asignatura.nombre} - {self.fecha}"
+    

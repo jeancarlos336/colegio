@@ -1,0 +1,121 @@
+
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <h2>Listado de Asistencias</h2>
+    
+    <!-- Buscador -->
+    <form method="get" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="buscar" class="form-control" placeholder="Buscar por alumno, asignatura, estado..." value="{{ request.GET.buscar }}">
+            <div class="input-group-append">
+                <button class="btn btn-primary" type="submit">Buscar</button>
+            </div>
+        </div>
+    </form>
+
+    {% for curso_nombre, asistencias_curso in asistencias_por_curso.items %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">{{ curso_nombre }}</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Alumno</th>
+                            <th>RUT</th>
+                            <th>Asignatura</th>
+                            <th>Fecha y Hora</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asistencia in asistencias_curso %}
+                        <tr>
+                            <td>{{ asistencia.matricula.alumno }}</td>
+                            <td>{{ asistencia.matricula.alumno.rut }}</td>
+                            <td>{{ asistencia.asignatura.nombre }}</td>
+                            <td>{{ asistencia.fecha_hora|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge text-dark {% if asistencia.estado == 'PRESENTE' %}bg-success{% elif asistencia.estado == 'AUSENTE' %}bg-danger{% else %}bg-warning{% endif %}" style="font-size: 0.9em; padding: 8px;">
+                                    {{ asistencia.estado }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="#" class="btn btn-sm btn-info" data-toggle="modal" data-target="#detalleModal{{ asistencia.id }}">Ver</a>
+                                <a href="{% url 'eliminar_asistencia' asistencia.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                            </td>
+                        </tr>
+
+                        <!-- Modal de detalle -->
+                        <div class="modal fade" id="detalleModal{{ asistencia.id }}" tabindex="-1" role="dialog">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Detalle de Asistencia</h5>
+                                        <button type="button" class="close" data-dismiss="modal">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p><strong>Alumno:</strong> {{ asistencia.matricula.alumno }}</p>
+                                        <p><strong>RUT:</strong> {{ asistencia.matricula.alumno.rut }}</p>
+                                        <p><strong>Curso:</strong> {{ asistencia.matricula.curso }}</p>
+                                        <p><strong>Asignatura:</strong> {{ asistencia.asignatura.nombre }}</p>
+                                        <p><strong>Fecha y Hora:</strong> {{ asistencia.fecha_hora|date:"d/m/Y H:i" }}</p>
+                                        <p><strong>Estado:</strong> 
+                                            <span class="badge text-dark {% if asistencia.estado == 'PRESENTE' %}bg-success{% elif asistencia.estado == 'AUSENTE' %}bg-danger{% else %}bg-warning{% endif %}" style="font-size: 0.9em; padding: 8px;">
+                                                {{ asistencia.estado }}
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">No se encontraron registros de asistencia.</div>
+    {% endfor %}
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <nav>
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.buscar %}&buscar={{ request.GET.buscar }}{% endif %}">Primera</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.buscar %}&buscar={{ request.GET.buscar }}{% endif %}">Anterior</a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.buscar %}&buscar={{ request.GET.buscar }}{% endif %}">Siguiente</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.buscar %}&buscar={{ request.GET.buscar }}{% endif %}">Última</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

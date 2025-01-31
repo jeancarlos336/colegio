@@ -3,40 +3,87 @@
 {% block contenido %}
 <div class="container">
     <h1 class="my-4">Listado de Asignaturas</h1>
-    
+
     <a href="{% url 'crear_asignatura' %}" class="btn btn-primary mb-3">Nueva Asignatura</a>
-    
-    
-    {% if asignaturas %}
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Código</th>
-                    <th>Sede</th>
-                    <th>Curso</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for asignatura in asignaturas %}
-                <tr>
-                    <td>{{ asignatura.nombre }}</td>
-                    <td>{{ asignatura.codigo }}</td>
-                    <td>{{ asignatura.sede.nombre }}</td>
-                    <td>{{ asignatura.curso.nombre|default:'Sin curso' }} {{ asignatura.curso.año }}</td>
-                    <td>{{ asignatura.profesor }}</td>
-                    <td>
-                        <a href="{% url 'detalle_asignatura' asignatura.pk %}" class="btn btn-info btn-sm">Ver</a>
-                        <a href="{% url 'editar_asignatura' asignatura.pk %}" class="btn btn-warning btn-sm">Editar</a>
-                        <a href="{% url 'eliminar_asignatura' asignatura.pk %}" class="btn btn-danger btn-sm">Eliminar</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No hay asignaturas registradas.</p>
-    {% endif %}
+
+    <form method="get" action="" class="mb-3">
+        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Buscar por nombre, curso o profesor">
+        <button type="submit" class="btn btn-secondary mt-2">Buscar</button>
+    </form>
+
+    {% for curso, asignaturas_del_curso in agrupadas_por_curso.items %}  {# Cambio de variable aquí #}
+        <h3 class="mt-4">{{ curso }}</h3>
+        {% if asignaturas_del_curso %}  {# Cambio de variable aquí #}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Código</th>
+                        <th>Sede</th>
+                        <th>Profesor</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asignatura in asignaturas_del_curso %}  {# Cambio de variable aquí #}
+                        <tr>
+                            <td>{{ asignatura.nombre }}</td>
+                            <td>{{ asignatura.codigo }}</td>
+                            <td>{{ asignatura.sede.nombre }}</td>
+                            <td>{{ asignatura.profesor }}</td>
+                            <td>
+                                <a href="{% url 'detalle_asignatura' asignatura.pk %}" class="btn btn-info btn-sm">Ver</a>
+                                <a href="{% url 'editar_asignatura' asignatura.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                                <a href="{% url 'eliminar_asignatura' asignatura.pk %}" class="btn btn-danger btn-sm">Eliminar</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No hay asignaturas para este curso.</p>
+        {% endif %}
+    {% endfor %}
+
+    <nav aria-label="Paginación">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Anterior">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&laquo;</span>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Siguiente">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&raquo;</span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+
 </div>
 {% endblock %}

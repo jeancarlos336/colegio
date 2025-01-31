@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = "django-insecure-q9n2gzw)pm!qxl!ace#%spj+#5umucq*-mr&#r-ta&9#_)gfbp"
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "10.201.71.215"]
 
 # Configuraciones de autenticación
