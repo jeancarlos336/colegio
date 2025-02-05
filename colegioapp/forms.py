@@ -545,10 +545,10 @@ class InformeAsistenciaForm(forms.Form):
         if usuario:
             if usuario.rol in ['ADMIN', 'DIRECTOR'] or usuario.is_staff:
                 # Si es admin o director, mostrar todas las asignaturas
-                self.fields['asignatura'].queryset = Asignatura.objects.all()
+                self.fields['asignatura'].queryset = Asignatura.objects.all().order_by("id")
             elif usuario.rol == 'PROFESOR':
                 # Si es profesor, mostrar solo sus asignaturas
-                self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=usuario)
+                self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=usuario).order_by("id")
             else:
                 # Para otros roles, no mostrar asignaturas (o ajusta según sea necesario)
                 self.fields['asignatura'].queryset = Asignatura.objects.none()
