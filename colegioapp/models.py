@@ -281,5 +281,5 @@ class Evaluacion(models.Model):
             raise ValidationError('Solo el profesor asignado puede crear evaluaciones para esta asignatura')
 
     def __str__(self):
-        return f"Evaluación de {self.asignatura.nombre} - {self.fecha}"
+        return f"Evaluación de {self.asignatura.nombre} - {self.fecha} - {self.profesor.username}"
     

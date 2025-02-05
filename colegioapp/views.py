@@ -35,6 +35,9 @@ from django.http import HttpResponse
 from openpyxl.utils import get_column_letter
 from .menus import MENUS 
 from django.core.paginator import Paginator
+from functools import wraps
+from django.core.exceptions import PermissionDenied
+
 
 
 def home(request):
@@ -968,11 +971,19 @@ def ingresar_calificaciones(request):
 #-------------------------------------------------------------------
 # vistas de informes de notas
 
-def es_profesor(user):
-    return user.rol == 'PROFESOR'
+def roles_required(*roles):
+   def decorator(view_func):
+       @wraps(view_func)
+       def _wrapped_view(request, *args, **kwargs):
+           if request.user.rol in roles:
+               return view_func(request, *args, **kwargs)
+           messages.error(request, 'No tienes permisos para acceder a esta página.')
+           return redirect('dashboard')
+       return _wrapped_view
+   return decorator
 
 @login_required
-@user_passes_test(es_profesor)
+@roles_required('PROFESOR', 'DIRECTOR')
 def seleccionar_parametros_informe(request):
     if request.method == 'POST':
         form = ParametrosInformeForm(request.user, request.POST)
@@ -988,22 +999,24 @@ def seleccionar_parametros_informe(request):
         'form': form
     })
 
+
 @login_required
-@user_passes_test(es_profesor)
 def generar_informe_notas(request, asignatura_id, año, semestre):
-    # Verificar que la asignatura existe y el profesor tiene acceso
+    # Verificar que la asignatura existe
+    if request.user.rol == 'DIRECTOR':
+        asignatura = get_object_or_404(Asignatura, id=asignatura_id)
+    else:
+        asignatura = get_object_or_404(Asignatura, id=asignatura_id, profesor=request.user)
     
-    asignatura = get_object_or_404(Asignatura, id=asignatura_id, profesor=request.user)
-    
-    # Obtener calificaciones
+    # Obtener calificaciones sin filtrar por profesor
     calificaciones = Calificacion.objects.filter(
-        profesor=request.user,
         asignatura=asignatura,
         semestre=semestre
     ).order_by('matricula__alumno__last_name', 
                'matricula__alumno__first_name', 
                'tipo')
-        
+    
+    # Resto del código se mantiene igual...    
     # Crear el PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
@@ -1110,7 +1123,7 @@ def generar_informe_notas(request, asignatura_id, año, semestre):
 #informe de notas x alumnos
 
 @login_required
-@user_passes_test(es_profesor)
+
 def seleccionar_parametros_informe_alumno(request):
     if request.method == 'POST':
         form = ParametrosInformeAlumnoForm(request.POST)
@@ -1551,13 +1564,62 @@ class EvaluacionCreateView(LoginRequiredMixin, CreateView):
             form.add_error(None, e)
             return self.form_invalid(form)
 
+
 class EvaluacionListView(LoginRequiredMixin, ListView):
     model = Evaluacion
     template_name = 'colegio/evaluacion_list.html'
     context_object_name = 'evaluaciones'
+    paginate_by = 10
 
     def get_queryset(self):
-        return Evaluacion.objects.filter(profesor=self.request.user).order_by("-id")
+        user = self.request.user
+        
+        # Filtro base de evaluaciones
+        if user.rol == 'DIRECTOR':
+            queryset = Evaluacion.objects.all()
+        elif user.rol == 'PROFESOR':
+            queryset = Evaluacion.objects.filter(profesor=user)
+        else:
+            return Evaluacion.objects.none()
+
+        # Búsqueda y filtrado
+        busqueda = self.request.GET.get('busqueda', '')
+        if busqueda:
+            try:
+                # Intenta convertir la fecha al formato correcto
+                fecha_convertida = datetime.strptime(busqueda.replace('/', '-'), '%d-%m-%Y').date()
+                busqueda_fecha = fecha_convertida.strftime('%Y-%m-%d')
+            except ValueError:
+                busqueda_fecha = busqueda
+
+            queryset = queryset.filter(
+                Q(asignatura__nombre__icontains=busqueda) |
+                Q(profesor__username__icontains=busqueda) |
+                Q(profesor__first_name__icontains=busqueda) |
+                Q(profesor__last_name__icontains=busqueda) |
+                Q(fecha__date__icontains=busqueda_fecha) |
+                Q(asignatura__curso__nombre__icontains=busqueda)
+            ) 
+        # Ordenar por fecha descendente
+        return queryset.order_by('-fecha')
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Agrupar evaluaciones por curso
+        evaluaciones_por_curso = {}
+        for evaluacion in context['evaluaciones']:
+            curso = evaluacion.asignatura.curso
+            curso_nombre = curso.nombre if curso else 'Sin Curso'
+            if curso_nombre not in evaluaciones_por_curso:
+                evaluaciones_por_curso[curso_nombre] = []
+            evaluaciones_por_curso[curso_nombre].append(evaluacion)
+        
+        context['evaluaciones_por_curso'] = evaluaciones_por_curso
+        context['es_director'] = self.request.user.rol == 'DIRECTOR'
+        
+        return context
 
 class EvaluacionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Evaluacion
@@ -1590,3 +1652,59 @@ class EvaluacionDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def test_func(self):
         evaluacion = self.get_object()
         return self.request.user == evaluacion.profesor
+    
+    
+
+class TodasEvaluacionListView(LoginRequiredMixin, ListView):
+    model = Evaluacion
+    template_name = 'colegio/otrasevaluaciones.html'
+    context_object_name = 'evaluaciones'
+    paginate_by = 10
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        # Filtro base de evaluaciones
+        if user.rol == 'DIRECTOR':
+            queryset = Evaluacion.objects.all()
+        elif user.rol == 'PROFESOR':
+           queryset = Evaluacion.objects.all()
+        else:
+            return Evaluacion.objects.none()
+
+        # Búsqueda y filtrado
+        busqueda = self.request.GET.get('busqueda', '')
+        if busqueda:
+            try:
+                # Intenta convertir la fecha al formato correcto
+                fecha_convertida = datetime.strptime(busqueda.replace('/', '-'), '%d-%m-%Y').date()
+                busqueda_fecha = fecha_convertida.strftime('%Y-%m-%d')
+            except ValueError:
+                busqueda_fecha = busqueda
+
+            queryset = queryset.filter(
+                Q(asignatura__nombre__icontains=busqueda) |
+                Q(profesor__username__icontains=busqueda) |
+                Q(profesor__first_name__icontains=busqueda) |
+                Q(profesor__last_name__icontains=busqueda) |
+                Q(fecha__date__icontains=busqueda_fecha) |
+                Q(asignatura__curso__nombre__icontains=busqueda)
+            ) 
+        # Ordenar por fecha descendente
+        return queryset.order_by('-fecha')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Agrupar evaluaciones por curso
+        evaluaciones_por_curso = {}
+        for evaluacion in context['evaluaciones']:
+            curso = evaluacion.asignatura.curso
+            curso_nombre = curso.nombre if curso else 'Sin Curso'
+            if curso_nombre not in evaluaciones_por_curso:
+                evaluaciones_por_curso[curso_nombre] = []
+            evaluaciones_por_curso[curso_nombre].append(evaluacion)
+        
+        context['evaluaciones_por_curso'] = evaluaciones_por_curso
+        
+        
+        return context

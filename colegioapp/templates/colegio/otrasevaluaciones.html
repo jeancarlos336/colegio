@@ -14,13 +14,10 @@
     </form>
 
     <!-- Botón para nueva evaluación solo para profesores -->
-    {% if not es_director %}
-    <a href="{% url 'evaluacion_create' %}" class="btn btn-primary mb-3">Agendar Nueva Evaluación</a>
-    {% endif %}
-    
+       
     {% for curso, evaluaciones in evaluaciones_por_curso.items %}
     <div class="card mb-4">
-        <div class="card-header bg-primary text-white"">
+        <div class="card-header bg-primary text-white">
             <h3 class="mb-0">{{ curso }}</h3>
         </div>       
         <div class="table-responsive">
@@ -41,15 +38,7 @@
                         <td>{{ evaluacion.profesor.get_full_name }}</td>
                         <td>{{ evaluacion.fecha|date:"d/m/Y H:i" }}</td>
                         <td>{{ evaluacion.observacion|truncatewords:10 }}</td>
-                        <td>
-                            
-                            
-                            {% if not es_director %}
-                            <a href="{% url 'evaluacion_update' evaluacion.pk %}" class="btn btn-warning btn-sm">Editar</a>
-                            <a href="{% url 'evaluacion_delete' evaluacion.pk %}" class="btn btn-danger btn-sm">Eliminar</a>
-                            <a href="{% url 'evaluacion_detail' evaluacion.pk %}" class="btn btn-info btn-sm">Ver</a>
-                            {% endif %}
-                        </td>
+                        
                     </tr>
                     {% endfor %}
                 </tbody>

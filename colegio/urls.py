@@ -67,7 +67,7 @@ from colegioapp.views import (
     tomar_asistencia, seleccionar_curso,ListarAsistenciaView, EliminarAsistenciaView,
 
     #evaluciones
-    EvaluacionListView, EvaluacionCreateView, EvaluacionDetailView, EvaluacionUpdateView, EvaluacionDeleteView,   
+    EvaluacionListView, EvaluacionCreateView, EvaluacionDetailView, EvaluacionUpdateView, EvaluacionDeleteView, TodasEvaluacionListView,  
     
     # Informes views
     seleccionar_parametros_informe,
@@ -195,6 +195,7 @@ urlpatterns = [
     path('evaluaciones/<int:pk>/', EvaluacionDetailView.as_view(), name='evaluacion_detail'),
     path('evaluaciones/<int:pk>/editar/', EvaluacionUpdateView.as_view(), name='evaluacion_update'),
     path('evaluaciones/<int:pk>/eliminar/', EvaluacionDeleteView.as_view(), name='evaluacion_delete'),
+    path('evaluaciones/otras/', TodasEvaluacionListView.as_view(), name='evaluacion_otras'),
 
 
     path('dashboard/profesor/', dashboard_profesor, name='dashboard_profesor'),

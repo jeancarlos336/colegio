@@ -166,7 +166,7 @@ MENUS = {
                 'submenu': [
                     {'name': 'Listar Evaluaciones', 'url': 'evaluacion_list'},
                     {'name': 'Agendar Evaluaciones', 'url': 'evaluacion_create'},
-                    {'name': 'Ver Otras Agendas', 'url': 'evaluacion_create'},           
+                    {'name': 'Ver Otras Agendas', 'url': 'evaluacion_otras'},           
                 ]
             }         
                  
@@ -192,35 +192,26 @@ MENUS = {
             {
                 'label': 'Informes',
                 'url': 'menu_informes',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-print',
                 'submenu': [
                     {'name': 'Informe Notas x Asignatura', 'url': 'seleccionar_parametros_informe'},
                     {'name': 'Informe Notas x Alumnos', 'url': 'seleccionar_parametros_informe_alumno'},
-                    {'name': 'Certificado Alumno Regular', 'url': 'certificado_form'},
-                    {'name': 'Informe de Asistencia', 'url': 'generar_informe'},
+                    {'name': 'Certificado Alumno Regular', 'url': 'certificado_form'},                    
                 ]
             },
             {
                 'label': 'Evaluaciones',
                 'url': 'menu_evaluciones',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-calendar-check',
                 'submenu': [
                     {'name': 'Listar Evaluaciones', 'url': 'evaluacion_list'},                   
-                    {'name': 'Ver Otras Agendas', 'url': 'evaluacion_create'},           
+                              
                 ]
-            },
-            {
-                'label': 'Pago Escolaridad',
-                'url': 'lista_pagos_mensualidad',
-                'icon': 'fa-graduation-cap',
-                'submenu': [
-                    {'name': 'Listar Pagos', 'url': 'lista_pagos_mensualidad'},                    
-                ]
-            },
+            },            
             {
                 'label': 'Asitencia',
                 'url': 'seleccionar_curso',
-                'icon': 'fa-graduation-cap',
+                'icon': 'fa fa-th',
                 'submenu': [                   
                     {'name': 'Informe de Asistencia', 'url': 'generar_informe'},
                     {'name': 'Listar Asistencia', 'url': 'listar_asistencia'},   

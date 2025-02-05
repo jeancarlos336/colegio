@@ -413,8 +413,6 @@ CalificacionFormSet = forms.modelformset_factory(
 )
   
 #informes de notas x semestre
-
-
 class ParametrosInformeForm(forms.Form):
     asignatura = forms.ModelChoiceField(
         queryset=None,
@@ -425,20 +423,25 @@ class ParametrosInformeForm(forms.Form):
         min_value=2020,
         max_value=2100,
         label="Año",
-        initial=2024
+        initial=2025
     )
     semestre = forms.ChoiceField(
         choices=[(1, 'Primer Semestre'), (2, 'Segundo Semestre')],
         label="Semestre"
     )
-
-    def __init__(self, profesor, *args, **kwargs):
+    
+    def __init__(self, usuario, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Filtrar las asignaturas asociadas al profesor
-        self.fields['asignatura'].queryset = Asignatura.objects.filter(
-            profesor=profesor
-        ).distinct()
-     
+        
+        if usuario.rol == 'DIRECTOR':
+            self.fields['asignatura'].queryset = Asignatura.objects.all().distinct().order_by("id")
+        elif usuario.rol == 'PROFESOR':
+            self.fields['asignatura'].queryset = Asignatura.objects.filter(
+                profesor=usuario
+            ).distinct().order_by("id")
+        else:
+            self.fields['asignatura'].queryset = Asignatura.objects.none()
+            
 #FORMULARIO INFORME DE NOTAS POR ALUMNO   
 class ParametrosInformeAlumnoForm(forms.Form):
     curso = forms.ModelChoiceField(
@@ -455,7 +458,7 @@ class ParametrosInformeAlumnoForm(forms.Form):
         min_value=2020,
         max_value=2100,
         label="Año",
-        initial=2024
+        initial=2025
     )
     semestre = forms.ChoiceField(
         choices=[(1, 'Primer Semestre'), (2, 'Segundo Semestre')],
@@ -473,7 +476,7 @@ class ParametrosInformeAlumnoForm(forms.Form):
                 ).select_related('alumno')
             except (ValueError, TypeError):
                 pass
-        
+
 
 #CERTIFICADO ALUMNO REGULAR
 class CertificadoForm(forms.Form):
@@ -540,12 +543,15 @@ class InformeAsistenciaForm(forms.Form):
         
         # Filtrar asignaturas según el usuario
         if usuario:
-            if usuario.is_staff:
-                # Si es admin, mostrar todas las asignaturas
+            if usuario.rol in ['ADMIN', 'DIRECTOR'] or usuario.is_staff:
+                # Si es admin o director, mostrar todas las asignaturas
                 self.fields['asignatura'].queryset = Asignatura.objects.all()
-            else:
+            elif usuario.rol == 'PROFESOR':
                 # Si es profesor, mostrar solo sus asignaturas
                 self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=usuario)
+            else:
+                # Para otros roles, no mostrar asignaturas (o ajusta según sea necesario)
+                self.fields['asignatura'].queryset = Asignatura.objects.none()
 
     def clean(self):
         cleaned_data = super().clean()
