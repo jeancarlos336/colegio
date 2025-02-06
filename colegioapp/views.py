@@ -776,8 +776,7 @@ def generar_voucher_pdf(request, pago_id):
     
 #ASITENCIA
 
-
-class ListarAsistenciaView(ListView):
+class ListarAsistenciaView(LoginRequiredMixin,ListView):
     model = RegistroAsistencia
     template_name = 'colegio/listar_asistencia.html'
     context_object_name = 'asistencias'
@@ -1123,7 +1122,6 @@ def generar_informe_notas(request, asignatura_id, año, semestre):
 #informe de notas x alumnos
 
 @login_required
-
 def seleccionar_parametros_informe_alumno(request):
     if request.method == 'POST':
         form = ParametrosInformeAlumnoForm(request.POST)
