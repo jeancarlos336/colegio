@@ -442,7 +442,6 @@ class ParametrosInformeForm(forms.Form):
         else:
             self.fields['asignatura'].queryset = Asignatura.objects.none()
             
-#FORMULARIO INFORME DE NOTAS POR ALUMNO   
 class ParametrosInformeAlumnoForm(forms.Form):
     curso = forms.ModelChoiceField(
         queryset=Curso.objects.all(),
@@ -463,6 +462,11 @@ class ParametrosInformeAlumnoForm(forms.Form):
     semestre = forms.ChoiceField(
         choices=[(1, 'Primer Semestre'), (2, 'Segundo Semestre')],
         label="Semestre"
+    )
+    observaciones = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 4}),
+        required=False,
+        label="Observaciones"
     )
 
     def __init__(self, *args, **kwargs):

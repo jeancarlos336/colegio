@@ -5,7 +5,7 @@ from .models import Sede, Usuario,Evaluacion, Curso, Matricula,Asignatura,DiaSem
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.contrib import messages
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from .forms import UsuarioForm,EditarUsuarioForm, EvaluacionForm, InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView,DetailView,FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -21,7 +21,6 @@ from django.utils.timezone import now
 from django.forms import modelformset_factory
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from io import BytesIO
 from decimal import Decimal
 from django.http import JsonResponse
@@ -37,7 +36,10 @@ from .menus import MENUS
 from django.core.paginator import Paginator
 from functools import wraps
 from django.core.exceptions import PermissionDenied
-
+from urllib.parse import unquote,quote
+from django.contrib.staticfiles import finders
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 
 
 def home(request):
@@ -1121,6 +1123,7 @@ def generar_informe_notas(request, asignatura_id, año, semestre):
 
 #informe de notas x alumnos
 
+
 @login_required
 def seleccionar_parametros_informe_alumno(request):
     if request.method == 'POST':
@@ -1130,16 +1133,25 @@ def seleccionar_parametros_informe_alumno(request):
             alumno_id = matricula.alumno.id
             año = form.cleaned_data['año']
             semestre = form.cleaned_data['semestre']
-            return redirect('generar_informe_notas_alumno', 
-                          alumno_id=alumno_id, 
-                          año=año, 
-                          semestre=semestre)
+            observaciones = form.cleaned_data['observaciones']
+
+            # Codificar observaciones para la URL
+            observaciones_encoded = quote(observaciones) if observaciones else ""
+
+            # Construir la URL con parámetros
+            url = reverse('generar_informe_notas_alumno', kwargs={
+                'alumno_id': alumno_id,
+                'año': año,
+                'semestre': semestre
+            })
+
+            return redirect(f'{url}?observaciones={observaciones_encoded}')
     else:
         form = ParametrosInformeAlumnoForm()
-    
-    return render(request, 'colegio/seleccionar_parametros_alumno.html', {
-        'form': form
-    })
+
+    return render(request, 'colegio/seleccionar_parametros_alumno.html', {'form': form})
+
+        
 
 def load_alumnos_notas(request):
     curso_id = request.GET.get('curso')
@@ -1153,7 +1165,9 @@ def load_alumnos_notas(request):
     )    
     
     
-    
+#---------------------
+
+
 @login_required
 def generar_informe_notas_alumno(request, alumno_id, año, semestre):
     # Obtener el alumno
@@ -1162,17 +1176,46 @@ def generar_informe_notas_alumno(request, alumno_id, año, semestre):
     # Obtener el curso del alumno a través de su matrícula
     matricula = Matricula.objects.filter(alumno=alumno, año=año).first()
     curso = matricula.curso if matricula else None
+    logo_path = finders.find('img/icono.ico')  # Asegura que se busque dentro de STATICFILES_DIRS
     
-    # Obtener todas las calificaciones del alumno para el semestre y año especificados
+    # Obtener todas las calificaciones del alumno
     calificaciones = Calificacion.objects.filter(
         matricula__alumno=alumno,
         semestre=semestre
     ).order_by('asignatura__nombre', 'tipo')
     
-    # Crear el PDF
+    # Calcular porcentaje de asistencia
+    asistencias_totales = RegistroAsistencia.objects.filter(
+        matricula=matricula,
+        fecha_hora__year=año,
+        fecha_hora__month__range=(1 if semestre == 1 else 7, 6 if semestre == 1 else 12)
+    ).count()
+    
+    presentes = RegistroAsistencia.objects.filter(
+        matricula=matricula,
+        fecha_hora__year=año,
+        fecha_hora__month__range=(1 if semestre == 1 else 7, 6 if semestre == 1 else 12),
+        estado__in=['PRESENTE', 'JUSTIFICADO']
+    ).count()
+    
+    porcentaje_asistencia = round((presentes / asistencias_totales * 100), 2) if asistencias_totales > 0 else 0
+    
+    # Decodificar las observaciones (pueden venir codificadas en la URL)
+    observaciones = unquote(request.GET.get('observaciones', ''))
+    
+   
+    # Crear el PDF con márgenes ajustados
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    elements = []
+    doc = SimpleDocTemplate(
+        buffer, 
+        pagesize=letter,
+        leftMargin=0.75 * inch,   # Margen izquierdo
+        rightMargin=0.75 * inch,  # Margen derecho
+        topMargin=0.5 * inch,     # Margen superior reducido
+        bottomMargin=0.75 * inch  # Margen inferior
+    )
+    elements = []   
+    
     
     # Estilos
     styles = getSampleStyleSheet()
@@ -1180,47 +1223,84 @@ def generar_informe_notas_alumno(request, alumno_id, año, semestre):
         'CustomTitle',
         parent=styles['Heading1'],
         alignment=1,
-        spaceAfter=30
+        spaceAfter=30,
+        fontSize=18,
+        textColor=colors.blue
     )
     
+    # Agregar logo
+    if logo_path:
+        img = Image(logo_path)
+        img.drawHeight = 50
+        img.drawWidth = 50
+        
+        logo_table = Table([[img]], colWidths=50, rowHeights=50)
+        logo_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('VALIGN', (0, 0), (0, 0), 'TOP'),
+            ('LEFTPADDING', (0, 0), (0, 0), 0),
+            ('TOPPADDING', (0, 0), (0, 0), 0),
+        ]))
+        elements.append(logo_table)
+    
     # Título
-    title = Paragraph(
-        f"INFORME DE NOTAS - COLEGIO MAS QUE VENCEDORES",       
-        title_style
-    )
+    title = Paragraph(f"INFORME DE NOTAS - {semestre} <b>SEMESTRE</b>", title_style)
     elements.append(title)
     
     # Información del alumno
     profesor_jefe = curso.profesor_jefe.get_full_name() if curso and curso.profesor_jefe else "No asignado"
     nivel = curso.get_nivel_display() if curso else "No especificado"
     curso_nombre = curso.nombre if curso else "No especificado"
-
     curso_año = curso.año if curso else "No especificado"
     
     alumno_info_style = ParagraphStyle(
         'AlumnoInfoStyle',
-        parent=styles['Normal'],  # Basado en el estilo 'Normal'
-        fontSize=11,  # Tamaño de fuente (puedes ajustarlo a lo que prefieras)
-        leading=14,  # Interlineado (ajusta según lo necesario)
+        parent=styles['Normal'],
+        fontSize=11,
+        leading=14,
     )
+    alumno_info_style1 = ParagraphStyle(
+        'AlumnoInfoStyle',
+        parent=styles['Normal'],
+        fontSize=11,
+        leading=14,
+        alignment=1,  # Centrar el texto
+        fontName='Helvetica-Oblique'  # Usar fuente en cursiva
+    )
+    
     alumno_info = Paragraph(
         f"""
         <b>Alumno:</b> {alumno.get_full_name()}<br/>
         <b>Profesor Jefe:</b> {profesor_jefe}<br/>
-        <b>Curso:</b> {curso_nombre}<br/>
-        <b>Semestre N°:</b> {semestre}<br/>
-        <b>Tipo de Enseñanza:</b> {nivel}<br/>
+        <b>Curso:</b> {curso_nombre}<br/>  
         <b>Año:</b> {curso_año}
         """,
-        alumno_info_style  # Aplicar el estilo personalizado
+        alumno_info_style
     )
     elements.append(alumno_info)
+    
+    # Espaciado
+    elements.append(Paragraph("<br/>", styles['Normal']))
+    elements.append(Spacer(1, 10))
+    
+    # Versículo bíblico
+    alumno_info1 = Paragraph(
+        f"""
+        Y todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres;
+        sabiendo que del Señor recibiréis la recompensa de la herencia, porque a Cristo el Señor servís.
+        Colosenses 3:23-24
+        """,
+        alumno_info_style1
+    )
+    elements.append(alumno_info1)
+      
+    
     
     # Espaciado
     elements.append(Paragraph("<br/><br/>", styles['Normal']))
     elements.append(Spacer(1, 20))
     
-    # Preparar datos para la tabla
+    # Tabla de notas
     data = [['Asignatura', 'Nota 1', 'Nota 2', 'Nota 3', 'Nota 4', 'Nota 5', 'Promedio']]
     
     # Agrupar calificaciones por asignatura
@@ -1264,31 +1344,49 @@ def generar_informe_notas_alumno(request, alumno_id, año, semestre):
         promedio_general = round(promedio_general / asignaturas_con_notas, 2)
         data.append(['Promedio General', '', '', '', '', '', str(promedio_general)])
     
-    # Crear tabla
+    # Agregar fila de asistencia
+    data.append(['Porcentaje de Asistencia', '', '', '', '', '', f"{porcentaje_asistencia}%"])
+    
+    # Crear tabla con estilos
     table = Table(data)
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F81BD')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 12),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('BACKGROUND', (0, 1), (-1, -2), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 1), (-1, -1), 10),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
         ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-        # Estilo especial para la fila del promedio general
-        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, -2), (-1, -1), colors.HexColor('#D3DFEE')),
+        ('FONTNAME', (0, -2), (-1, -1), 'Helvetica-Bold'),
     ]))
     
     elements.append(table)
     
-    # Agregar firma del profesor
-    elements.append(Spacer(1, 50))
+    # Observaciones
+    if observaciones:
+        elements.append(Spacer(1, 20))
+        obs_style = ParagraphStyle(
+            'Observaciones',
+            parent=styles['Normal'],
+            fontSize=11,
+            leading=14,
+            leftIndent=20,
+            rightIndent=20
+        )
+        obs_title = Paragraph("<b>Observaciones:</b>", obs_style)
+        obs_text = Paragraph(observaciones, obs_style)
+        elements.append(obs_title)
+        elements.append(obs_text)
+    
+    # Firma del profesor
+    elements.append(Spacer(1, 30))
     firma = Paragraph(f"""
     <para alignment="center">
     _______________________<br/>
@@ -1297,6 +1395,15 @@ def generar_informe_notas_alumno(request, alumno_id, año, semestre):
     </para>
     """, styles['Normal'])
     elements.append(firma)
+    
+    # Pie de página
+    footer = Paragraph(f"""
+    <para alignment="center">
+    <font size="9" color="gray">Escuela Mas Que Vencedores - Informe generado automáticamente</font>
+    </para>
+    """, styles['Normal'])
+    elements.append(Spacer(1, 20))
+    elements.append(footer)
     
     # Generar PDF
     doc.build(elements)
@@ -1308,6 +1415,7 @@ def generar_informe_notas_alumno(request, alumno_id, año, semestre):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
     return response
+#-------------------  
 
 #CERTIFICADO ALUMNO REGULAR
 class CertificadoView(FormView):

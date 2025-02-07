@@ -40,7 +40,13 @@
                             <div class="text-danger">{{ form.semestre.errors }}</div>
                         {% endif %}
                     </div>
-                    
+                    <div class="mb-3">
+                        {{ form.observaciones.label_tag }}
+                        {{ form.observaciones }}
+                        {% if form.observaciones.errors %}
+                            <div class="text-danger">{{ form.observaciones.errors }}</div>
+                        {% endif %}
+                    </div>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-file-pdf me-2"></i>
                         Generar Informe
