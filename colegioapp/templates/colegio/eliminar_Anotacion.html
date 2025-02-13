@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h3>Confirmar Eliminación</h3>
+        </div>
+        <div class="card-body">
+            <p>¿Está seguro que desea eliminar la siguiente anotación?</p>
+            <dl class="row">
+                <dt class="col-sm-3">Alumno:</dt>
+                <dd class="col-sm-9">{{ anotacion.alumno.get_full_name }}</dd>
+                <dt class="col-sm-3">Fecha:</dt>
+                <dd class="col-sm-9">{{ anotacion.fecha_creacion|date:"d/m/Y H:i" }}</dd>
+                <dt class="col-sm-3">Nivel:</dt>
+                <dd class="col-sm-9">{{ anotacion.get_nivel_display }}</dd>
+            </dl>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Confirmar Eliminación</button>
+                <a href="{% url 'lista_anotaciones' %}" class="btn btn-secondary">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

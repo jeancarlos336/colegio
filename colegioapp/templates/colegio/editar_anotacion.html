@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+<style>
+    .is-invalid {
+        border-color: #dc3545;
+    }
+    .invalid-feedback {
+        display: block;
+        color: #dc3545;
+        font-size: 80%;
+        margin-top: 0.25rem;
+    }
+</style>
+{% block contenido %}
+<div class="container mt-4">
+    <h2>Editar Anotación</h2>
+
+    <form method="post" id="anotacionForm" action="{{ action_url }}">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_curso">Curso:</label>
+            {{ form.curso }}
+        </div>
+        <div class="form-group">
+            <label for="id_alumno">Alumno:</label>
+            {{ form.alumno }}
+        </div>
+        <div class="form-group">
+            <label for="id_nivel">Nivel:</label>
+            {{ form.nivel }}
+        </div>
+        <div class="form-group">
+            <label for="id_descripcion">Descripción:</label>
+            {{ form.descripcion }}
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Actualizar Anotación</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cursoSelect = document.getElementById('id_curso');
+    const alumnoSelect = document.getElementById('id_alumno');
+    const form = document.getElementById('anotacionForm');
+    
+    // Deshabilitar el select de alumnos inicialmente
+    alumnoSelect.disabled = true;
+    
+    const cargarAlumnos = (cursoId) => {
+        if (!cursoId) {
+            alumnoSelect.innerHTML = '<option value="">Seleccione un curso primero</option>';
+            alumnoSelect.disabled = true;
+            return;
+        }
+
+        alumnoSelect.disabled = true;
+        alumnoSelect.innerHTML = '<option value="">Cargando alumnos...</option>';
+        
+        fetch(`{% url 'alumnos_por_curso' %}?id_curso=${cursoId}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(response => {
+            alumnoSelect.innerHTML = '<option value="">Seleccione un alumno</option>';
+            
+            if (response.success && response.data && response.data.length > 0) {
+                response.data.forEach(alumno => {
+                    const option = document.createElement('option');
+                    option.value = alumno.id;
+                    option.textContent = `${alumno.first_name} ${alumno.last_name}`;
+                    alumnoSelect.appendChild(option);
+                });
+                alumnoSelect.disabled = false;
+            } else {
+                alumnoSelect.innerHTML = '<option value="">No hay alumnos disponibles</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar alumnos:', error);
+            alumnoSelect.innerHTML = '<option value="">Error al cargar alumnos</option>';
+        });
+    };
+
+    // Event listener para cambios en el select de curso
+    cursoSelect.addEventListener('change', function() {
+        cargarAlumnos(this.value);
+    });
+
+    // Manejar el envío del formulario
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        // Resetear mensajes de error previos
+        document.querySelectorAll('.error-message').forEach(el => el.remove());
+        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json().then(data => ({
+            ok: response.ok,
+            data: data
+        })))
+        .then(({ok, data}) => {
+            if (ok && data.success) {
+                alert(data.message || 'Anotación actualizada exitosamente');
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                }
+            } else {
+                // Manejar errores
+                if (data.errors) {
+                    Object.keys(data.errors).forEach(fieldName => {
+                        const field = document.getElementById('id_' + fieldName);
+                        if (field) {
+                            field.classList.add('is-invalid');
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'invalid-feedback error-message';
+                            errorDiv.textContent = data.errors[fieldName].join(', ');
+                            field.parentNode.appendChild(errorDiv);
+                        }
+                    });
+                }
+                alert(data.message || 'Error al actualizar la anotación');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud. Por favor, intente nuevamente.');
+        });
+    });
+});
+</script>
+{% endblock %}

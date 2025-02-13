@@ -1,12 +1,12 @@
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required,user_passes_test
-from .models import Sede, Usuario,Evaluacion, Curso, Matricula,Asignatura,DiaSemana,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia
+from .models import Sede, Usuario,Evaluacion, Anotacion, Curso, Matricula,Asignatura,DiaSemana,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from .forms import UsuarioForm,EditarUsuarioForm, EvaluacionForm, InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
+from .forms import UsuarioForm,EditarUsuarioForm, AnotacionForm ,EvaluacionForm, InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView,DetailView,FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Avg, Count, Q
@@ -40,6 +40,8 @@ from urllib.parse import unquote,quote
 from django.contrib.staticfiles import finders
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from django.http import HttpResponseRedirect
+from django.views.decorators.http import require_http_methods
 
 
 def home(request):
@@ -1482,6 +1484,7 @@ def load_alumnos(request):
         safe=False
     )
 
+
 # genera informe de asistencia 
 
 def exportar_excel(context):
@@ -1814,3 +1817,176 @@ class TodasEvaluacionListView(LoginRequiredMixin, ListView):
         
         
         return context
+#ANOTACIONES
+
+
+
+from django.core.paginator import Paginator
+from django.db.models import Q
+
+@login_required
+def lista_anotaciones(request):
+    query = request.GET.get('q', '')
+    page_number = request.GET.get('page', 1)
+
+    if request.user.rol in ['PROFESOR', 'DIRECTOR', 'ADMIN']:
+        anotaciones = Anotacion.objects.all()
+    else:
+        anotaciones = Anotacion.objects.filter(alumno=request.user)
+
+    # Filtro por búsqueda
+    if query:
+        anotaciones = anotaciones.filter(
+            Q(alumno__first_name__icontains=query) |
+            Q(alumno__last_name__icontains=query) |
+            Q(curso__nombre__icontains=query) |
+            Q(nivel__icontains=query) |
+            Q(descripcion__icontains=query)
+        )
+
+    # Ordenar por fecha
+    anotaciones = anotaciones.order_by('-fecha_creacion')
+
+    # Paginación
+    paginator = Paginator(anotaciones, 10)  # 10 anotaciones por página
+    anotaciones_paginadas = paginator.get_page(page_number)
+
+    return render(request, 'lista_anotaciones.html', {
+        'anotaciones': anotaciones_paginadas,
+        'query': query
+    })
+
+   
+@login_required
+def detalle_anotacion(request, pk):
+    anotacion = get_object_or_404(Anotacion, pk=pk)
+    return render(request, 'detalle_anotacion.html', {'anotacion': anotacion})
+
+
+class EditarAnotacionView(LoginRequiredMixin, UpdateView):
+    model = Anotacion
+    form_class = AnotacionForm
+    template_name = 'editar_anotacion.html'
+    success_url = reverse_lazy('lista_anotaciones')
+
+    def form_valid(self, form):
+        try:
+            form.instance.usuario = self.request.user
+            self.object = form.save()
+            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Anotación actualizada exitosamente',
+                    'redirect_url': self.get_success_url()
+                })
+            return super().form_valid(form)
+        except Exception as e:
+            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': str(e)
+                }, status=400)
+            raise
+
+    def form_invalid(self, form):
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            errors = {}
+            for field, error_list in form.errors.items():
+                errors[field] = [str(error) for error in error_list]
+            
+            return JsonResponse({
+                'success': False,
+                'message': 'Por favor corrija los errores en el formulario',
+                'errors': errors
+            }, status=400)
+        return self.render_to_response(self.get_context_data(form=form))
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if self.request.method in ('POST', 'PUT'):
+            kwargs['data'] = self.request.POST.copy()
+        return kwargs
+
+
+@login_required
+def eliminar_anotacion(request, pk):
+    if request.user.rol not in ['PROFESOR', 'DIRECTOR', 'ADMIN']:
+        messages.error(request, 'No tiene permisos para eliminar anotaciones.')
+        return redirect('lista_anotaciones')
+        
+    anotacion = get_object_or_404(Anotacion, pk=pk)
+    if request.method == 'POST':
+        anotacion.delete()
+        messages.success(request, 'Anotación eliminada exitosamente.')
+        return redirect('lista_anotaciones')
+    return render(request, 'eliminar_Anotacion.html', {'anotacion': anotacion})
+
+
+class CrearAnotacionView(LoginRequiredMixin, CreateView):
+    model = Anotacion
+    form_class = AnotacionForm
+    template_name = 'crear_anotacion.html'
+    success_url = reverse_lazy('lista_anotaciones')
+
+    def form_valid(self, form):
+        try:
+            form.instance.usuario = self.request.user
+            self.object = form.save()           
+            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Anotación guardada exitosamente',
+                    'redirect_url': self.get_success_url()
+                })
+            return super().form_valid(form)
+            
+        except Exception as e:
+            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': str(e)
+                }, status=400)
+            raise
+
+    def form_invalid(self, form):
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            errors = {}
+            for field, error_list in form.errors.items():
+                errors[field] = [str(error) for error in error_list]
+            
+            return JsonResponse({
+                'success': False,
+                'message': 'Por favor corrija los errores en el formulario',
+                'errors': errors
+            }, status=400)
+        return self.render_to_response(self.get_context_data(form=form))
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if self.request.method in ('POST', 'PUT'):
+            kwargs['data'] = self.request.POST.copy()
+        return kwargs
+    
+def get_alumnos_curso(request):
+    curso_id = request.GET.get('id_curso')
+    if curso_id:
+        try:
+            alumnos = Usuario.objects.filter(
+                rol='ALUMNO',
+                matriculas__curso_id=curso_id,
+                matriculas__estado='ACTIVO'  # Solo alumnos activos
+            ).distinct().values('id', 'first_name', 'last_name')
+            
+            return JsonResponse({
+                'success': True,
+                'data': list(alumnos)
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    return JsonResponse({
+        'success': True,
+        'data': []
+    })

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h3>Detalle de Anotación</h3>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Alumno:</dt>
+                <dd class="col-sm-9">{{ anotacion.alumno.get_full_name }}</dd>
+
+                <dt class="col-sm-3">Curso:</dt>
+                <dd class="col-sm-9">{{ anotacion.curso }}</dd>
+
+                <dt class="col-sm-3">Asignatura:</dt>
+                <dd class="col-sm-9">{{ anotacion.asignatura }}</dd>
+
+                <dt class="col-sm-3">Nivel:</dt>
+                <dd class="col-sm-9">
+                    <span class="badge {% if anotacion.nivel == 'positiva' %}bg-success{% elif anotacion.nivel == 'grave' %}bg-danger{% else %}bg-warning{% endif %}">
+                        {{ anotacion.get_nivel_display }}
+                    </span>
+                </dd>
+
+                <dt class="col-sm-3">Descripción:</dt>
+                <dd class="col-sm-9">{{ anotacion.descripcion|linebreaks }}</dd>
+
+                <dt class="col-sm-3">Fecha:</dt>
+                <dd class="col-sm-9">{{ anotacion.fecha_creacion|date:"d/m/Y H:i" }}</dd>
+            </dl>
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'lista_anotaciones' %}" class="btn btn-secondary">Volver</a>
+            {% if user.rol in 'PROFESOR,DIRECTOR,ADMIN' %}
+            <a href="{% url 'editar_anotacion' anotacion.pk %}" class="btn btn-warning">Editar</a>
+            <a href="{% url 'eliminar_anotacion' anotacion.pk %}" class="btn btn-danger">Eliminar</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

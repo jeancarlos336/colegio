@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Usuario, Sede,Evaluacion, Curso, Asignatura, DiaSemana, Matricula,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia,RegistroAsistencia, Asignatura
+from .models import Usuario, Sede,Evaluacion, Curso, Asignatura, Anotacion, DiaSemana, Matricula,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia,RegistroAsistencia, Asignatura
 from datetime import datetime, date
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -605,4 +605,65 @@ class EvaluacionForm(forms.ModelForm):
         fecha = cleaned_data.get('fecha')
         if fecha and fecha < timezone.now():
             raise ValidationError('La fecha de evaluación no puede ser en el pasado')
+        return cleaned_data
+
+#ANOTACIONES
+class AnotacionForm(forms.ModelForm):
+    curso = forms.ModelChoiceField(
+        queryset=Curso.objects.all(),
+        empty_label="Seleccione un curso",
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_curso'})
+    )
+    alumno = forms.ModelChoiceField(
+        queryset=Usuario.objects.none(),
+        empty_label="Seleccione un alumno",
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_alumno'})
+    )
+    descripcion = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control'})
+    )
+    nivel = forms.ChoiceField(
+        choices=Anotacion.NIVELES,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = Anotacion
+        fields = ['curso', 'alumno', 'nivel', 'descripcion']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'data' in kwargs:
+            try:
+                curso_id = kwargs['data'].get('curso')
+                if curso_id:
+                    self.fields['alumno'].queryset = Usuario.objects.filter(
+                        rol='ALUMNO',
+                        matriculas__curso_id=curso_id,
+                        matriculas__estado='ACTIVO'
+                    ).distinct()
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk:
+            self.fields['alumno'].queryset = Usuario.objects.filter(
+                rol='ALUMNO',
+                matriculas__curso=self.instance.curso,
+                matriculas__estado='ACTIVO'
+            ).distinct()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        curso = cleaned_data.get('curso')
+        alumno = cleaned_data.get('alumno')
+
+        if curso and alumno:
+            # Verificar si el alumno está matriculado en el curso
+            matricula_existe = alumno.matriculas.filter(
+                curso=curso,
+                estado='ACTIVO'
+            ).exists()
+
+            if not matricula_existe:
+                self.add_error('alumno', 'El alumno seleccionado no está matriculado en este curso')
+
         return cleaned_data

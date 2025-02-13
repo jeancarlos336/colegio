@@ -15,10 +15,6 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-
-
-
-
 from django.contrib import admin
 import os
 from django.http import FileResponse, HttpResponse
@@ -63,6 +59,9 @@ from colegioapp.views import (
     lista_pagos_mensualidad, crear_pago_mensualidad, editar_pago_mensualidad,
     eliminar_pago_mensualidad, generar_voucher_pdf,
     
+    #Anotaciones
+    lista_anotaciones,detalle_anotacion,EditarAnotacionView,eliminar_anotacion,CrearAnotacionView, get_alumnos_curso,
+    
     # Asistencia views
     tomar_asistencia, seleccionar_curso,ListarAsistenciaView, EliminarAsistenciaView,
 
@@ -80,6 +79,7 @@ from colegioapp.views import (
     generar_informe,
     
 )
+
 
 def serve_pdf(request, pago_id):
     pdf_path = os.path.join(settings.MEDIA_ROOT, f'vouchers/voucher_{pago_id}.pdf')
@@ -199,7 +199,17 @@ urlpatterns = [
 
 
     path('dashboard/profesor/', dashboard_profesor, name='dashboard_profesor'),
+    
+    
+    path('anotaciones/', lista_anotaciones, name='lista_anotaciones'),
+    path('anotaciones/<int:pk>/', detalle_anotacion, name='detalle_anotacion'),
 
+    path('editar_anotacion/<int:pk>/', EditarAnotacionView.as_view(), name='editar_anotacion'),
+    path('anotaciones/<int:pk>/eliminar/', eliminar_anotacion, name='eliminar_anotacion'),
+
+
+    path('anotacion/crear/', CrearAnotacionView.as_view(), name='crear_anotacion'),
+    path('api/alumnos-por-curso/', get_alumnos_curso, name='alumnos_por_curso'),
    
 ]
 

@@ -282,4 +282,39 @@ class Evaluacion(models.Model):
 
     def __str__(self):
         return f"Evaluación de {self.asignatura.nombre} - {self.fecha} - {self.profesor.username}"
+
+
+#Anotaciones
+
+class Anotacion(models.Model):
+    NIVELES = [
+        ('leve', 'Leve'),
+        ('grave', 'Grave'),
+        ('positiva', 'Positiva'),
+    ]
     
+    alumno = models.ForeignKey(
+        Usuario, 
+        on_delete=models.CASCADE,
+        related_name='anotaciones_recibidas',
+        limit_choices_to={'rol': 'ALUMNO'}
+    )
+    curso = models.ForeignKey(
+        Curso,
+        on_delete=models.CASCADE,
+        related_name='anotaciones'
+    )
+    nivel = models.CharField(
+        max_length=10,
+        choices=NIVELES
+    )
+    descripcion = models.TextField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name='anotaciones_realizadas'
+    )
+    
+    def __str__(self):
+        return f"Anotación {self.nivel} - {self.alumno.get_full_name()}"   
