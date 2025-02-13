@@ -1,47 +1,64 @@
-
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required,user_passes_test
-from .models import Sede, Usuario,Evaluacion, Anotacion, Curso, Matricula,Asignatura,DiaSemana,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
-from django.contrib import messages
-from django.urls import reverse_lazy, reverse
-from .forms import UsuarioForm,EditarUsuarioForm, AnotacionForm ,EvaluacionForm, InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView,DetailView,FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib import messages
+from django.urls import reverse, reverse_lazy
+from django.http import (
+    FileResponse, HttpResponse, Http404, JsonResponse, HttpResponseRedirect
+)
+from django.core.paginator import Paginator
+from django.core.exceptions import PermissionDenied
+from django.views import View
+from django.views.generic import (
+    ListView, CreateView, UpdateView, DeleteView, DetailView, FormView
+)
+from django.views.decorators.http import require_http_methods
 from django.db.models import Avg, Count, Q
-from django.utils import timezone
-import os
-from django.http import FileResponse, HttpResponse, Http404
-from django.conf import settings
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from urllib.parse import urlencode
 from django.utils.timezone import now
 from django.forms import modelformset_factory
-from reportlab.lib import colors
+from functools import wraps
+from urllib.parse import urlencode, quote, unquote
+
+# Modelos y formularios locales
+from .models import (
+    Sede, Usuario, Evaluacion, Anotacion, Curso, Matricula, Asignatura,
+    DiaSemana, AsignacionProfesorSede, Calificacion, Horario, PagoMensualidad,
+    RegistroAsistencia
+)
+from .forms import (
+    UsuarioForm, EditarUsuarioForm, AnotacionForm, EvaluacionForm,
+    InformeAsistenciaForm, SedeForm, CalificacionFormSet, CertificadoForm,
+    CursoForm, ParametrosInformeAlumnoForm, ParametrosInformeForm,
+    CalificacionSeleccionForm, AsignaturaForm, DiaSemanaForm,
+    AsistenciaSeleccionForm, RegistroAsistenciaFormSet, MatriculaForm,
+    AsignacionForm, HorarioForm, HorarioFiltroForm, PagoMensualidadForm,
+    PagoMensualidadFiltroForm
+)
+from .menus import MENUS 
+
+# Librerías externas
+from reportlab.lib import colors, units
+from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from io import BytesIO
-from decimal import Decimal
-from django.http import JsonResponse
-from datetime import datetime, date, timedelta
-from django.views import View
-from collections import defaultdict
-import calendar
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+)
+from reportlab.pdfgen import canvas
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
-from django.http import HttpResponse
 from openpyxl.utils import get_column_letter
-from .menus import MENUS 
-from django.core.paginator import Paginator
-from functools import wraps
-from django.core.exceptions import PermissionDenied
-from urllib.parse import unquote,quote
-from django.contrib.staticfiles import finders
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from django.http import HttpResponseRedirect
-from django.views.decorators.http import require_http_methods
+from decimal import Decimal
+from io import BytesIO
+from collections import defaultdict
+import os
+import calendar
+from datetime import datetime, date, timedelta
+from django.conf import settings
+
+
+
 
 
 def home(request):
