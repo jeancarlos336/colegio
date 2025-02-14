@@ -15,8 +15,8 @@
                 <dt class="col-sm-3">Curso:</dt>
                 <dd class="col-sm-9">{{ anotacion.curso }}</dd>
 
-                <dt class="col-sm-3">Asignatura:</dt>
-                <dd class="col-sm-9">{{ anotacion.asignatura }}</dd>
+                <dt class="col-sm-3">Profesor:</dt>
+                <dd class="col-sm-9">{{ anotacion.usuario.first_name }} {{ anotacion.usuario.last_name }}</dd>
 
                 <dt class="col-sm-3">Nivel:</dt>
                 <dd class="col-sm-9">
@@ -34,8 +34,11 @@
         </div>
         <div class="card-footer">
             <a href="{% url 'lista_anotaciones' %}" class="btn btn-secondary">Volver</a>
-            {% if user.rol in 'PROFESOR,DIRECTOR,ADMIN' %}
+            {% if user.rol in 'PROFESOR' %}
             <a href="{% url 'editar_anotacion' anotacion.pk %}" class="btn btn-warning">Editar</a>
+            <a href="{% url 'eliminar_anotacion' anotacion.pk %}" class="btn btn-danger">Eliminar</a>
+            {% endif %}
+            {% if user.rol in 'ADMIN' %}            
             <a href="{% url 'eliminar_anotacion' anotacion.pk %}" class="btn btn-danger">Eliminar</a>
             {% endif %}
         </div>

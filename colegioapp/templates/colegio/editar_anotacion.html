@@ -1,39 +1,31 @@
 {% extends 'base.html' %}
 {% load static %}
-<style>
-    .is-invalid {
-        border-color: #dc3545;
-    }
-    .invalid-feedback {
-        display: block;
-        color: #dc3545;
-        font-size: 80%;
-        margin-top: 0.25rem;
-    }
-</style>
-{% block contenido %}
-<div class="form-container fade-in">   
-    <h2>Editar Anotación</h2>
 
-    <form method="post" id="anotacionForm" action="{{ action_url }}">
-        {% csrf_token %}
+{% block contenido %}
+<div class="form-container fade-in">    
+    <h2 class="form-title">Editar Anotación</h2>
+
+    <form method="post" id="anotacionForm" action="{{ request.path }}">
         <div class="form-group">
-            <label for="id_curso">Curso:</label>
-            {{ form.curso }}
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_curso">Curso:</label>
+                {{ form.curso }}
+            </div>
+            <div class="form-group">
+                <label for="id_alumno">Alumno:</label>
+                {{ form.alumno }}
+            </div>
+            <div class="form-group">
+                <label for="id_nivel">Nivel:</label>
+                {{ form.nivel }}
+            </div>
+            <div class="form-group">
+                <label for="id_descripcion">Descripción:</label>
+                {{ form.descripcion }}
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Actualizar Anotación</button>
         </div>
-        <div class="form-group">
-            <label for="id_alumno">Alumno:</label>
-            {{ form.alumno }}
-        </div>
-        <div class="form-group">
-            <label for="id_nivel">Nivel:</label>
-            {{ form.nivel }}
-        </div>
-        <div class="form-group">
-            <label for="id_descripcion">Descripción:</label>
-            {{ form.descripcion }}
-        </div>
-        <button type="submit" class="btn btn-primary mt-3">Actualizar Anotación</button>
     </form>
 </div>
 {% endblock %}
@@ -45,8 +37,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const alumnoSelect = document.getElementById('id_alumno');
     const form = document.getElementById('anotacionForm');
     
-    // Deshabilitar el select de alumnos inicialmente
-    alumnoSelect.disabled = true;
+    // Guardar el alumno seleccionado inicialmente
+    const initialAlumnoId = alumnoSelect.value;
     
     const cargarAlumnos = (cursoId) => {
         if (!cursoId) {
@@ -72,6 +64,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     const option = document.createElement('option');
                     option.value = alumno.id;
                     option.textContent = `${alumno.first_name} ${alumno.last_name}`;
+                    // Seleccionar el alumno inicial si coincide
+                    if (alumno.id.toString() === initialAlumnoId) {
+                        option.selected = true;
+                    }
                     alumnoSelect.appendChild(option);
                 });
                 alumnoSelect.disabled = false;
@@ -84,6 +80,11 @@ document.addEventListener('DOMContentLoaded', function() {
             alumnoSelect.innerHTML = '<option value="">Error al cargar alumnos</option>';
         });
     };
+
+    // Cargar alumnos inicialmente si hay un curso seleccionado
+    if (cursoSelect.value) {
+        cargarAlumnos(cursoSelect.value);
+    }
 
     // Event listener para cambios en el select de curso
     cursoSelect.addEventListener('change', function() {

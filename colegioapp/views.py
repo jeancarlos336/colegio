@@ -1818,21 +1818,21 @@ class TodasEvaluacionListView(LoginRequiredMixin, ListView):
         
         
         return context
-#ANOTACIONES
-
-
-
-from django.core.paginator import Paginator
-from django.db.models import Q
 
 @login_required
 def lista_anotaciones(request):
     query = request.GET.get('q', '')
     page_number = request.GET.get('page', 1)
 
-    if request.user.rol in ['PROFESOR', 'DIRECTOR', 'ADMIN']:
+    # Lógica para determinar qué anotaciones mostrar según el rol
+    if request.user.rol == 'PROFESOR':
+        # Profesores solo ven sus propias anotaciones
+        anotaciones = Anotacion.objects.filter(usuario=request.user)
+    elif request.user.rol in ['DIRECTOR', 'ADMIN']:
+        # Directores y administradores ven todas las anotaciones
         anotaciones = Anotacion.objects.all()
     else:
+        # Alumnos solo ven sus propias anotaciones
         anotaciones = Anotacion.objects.filter(alumno=request.user)
 
     # Filtro por búsqueda
@@ -1863,16 +1863,19 @@ def detalle_anotacion(request, pk):
     anotacion = get_object_or_404(Anotacion, pk=pk)
     return render(request, 'detalle_anotacion.html', {'anotacion': anotacion})
 
-
+# Vista para editar anotaciones
 class EditarAnotacionView(LoginRequiredMixin, UpdateView):
     model = Anotacion
     form_class = AnotacionForm
     template_name = 'editar_anotacion.html'
     success_url = reverse_lazy('lista_anotaciones')
 
+    def get_queryset(self):
+        # Asegurarse de que el usuario solo pueda editar sus propias anotaciones
+        return super().get_queryset().filter(usuario=self.request.user)
+
     def form_valid(self, form):
         try:
-            form.instance.usuario = self.request.user
             self.object = form.save()
             if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
@@ -1881,6 +1884,7 @@ class EditarAnotacionView(LoginRequiredMixin, UpdateView):
                     'redirect_url': self.get_success_url()
                 })
             return super().form_valid(form)
+            
         except Exception as e:
             if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
@@ -1907,7 +1911,6 @@ class EditarAnotacionView(LoginRequiredMixin, UpdateView):
         if self.request.method in ('POST', 'PUT'):
             kwargs['data'] = self.request.POST.copy()
         return kwargs
-
 
 @login_required
 def eliminar_anotacion(request, pk):

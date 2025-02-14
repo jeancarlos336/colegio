@@ -4,7 +4,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Anotaciones</h2>
-        {% if user.rol in 'PROFESOR,DIRECTOR,ADMIN' %}
+        {% if user.rol in 'PROFESOR,ADMIN' %}
         <a href="{% url 'crear_anotacion' %}" class="btn btn-primary">Nueva Anotación</a>
         {% endif %}
     </div>
@@ -42,7 +42,7 @@
                     </td>
                     <td>
                         <a href="{% url 'detalle_anotacion' anotacion.pk %}" class="btn btn-sm btn-info">Ver</a>
-                        {% if user.rol in 'PROFESOR,DIRECTOR,ADMIN' %}
+                        {% if user.rol in 'PROFESOR' %}
                         <a href="{% url 'editar_anotacion' anotacion.pk %}" class="btn btn-sm btn-warning">Editar</a>
                         <a href="{% url 'eliminar_anotacion' anotacion.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
                         {% endif %}

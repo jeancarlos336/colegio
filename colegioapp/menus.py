@@ -123,7 +123,16 @@ MENUS = {
                     
                     
                 ]
-            }         
+            },
+            {
+                'label': 'Anotaciones',
+                'url': 'menu_anotaciones',
+                'icon': 'fa fa-comment',
+                'submenu': [
+                    {'name': 'Listar Anotaciones', 'url': 'lista_anotaciones'},
+                    {'name': 'Crear Anotaciones', 'url': 'crear_anotacion'},                            
+                ]
+            }                   
         ],
         
 
@@ -227,6 +236,14 @@ MENUS = {
                                      
                 ]
             },
+            {
+                'label': 'Anotaciones',
+                'url': 'menu_anotaciones',
+                'icon': 'fa fa-comment',
+                'submenu': [
+                    {'name': 'Listar Anotaciones', 'url': 'lista_anotaciones'},                                            
+                ]
+            }          
                                                  
                  
         ],
