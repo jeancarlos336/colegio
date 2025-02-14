@@ -19,7 +19,8 @@
                                 <th>Nota</th>
                                 <th>Semestre</th>
                                 <th>Evaluacion</th>
-                                <th>Especificacion</th>                              
+                                <th>Especificacion</th>   
+                                <th>Acciones</th>                            
                             </tr>
                         </thead>
                         <tbody>
@@ -29,8 +30,15 @@
                                 <td>{{ calificacion.nota }}</td>
                                 <td>{{ calificacion.semestre }}° Semestre</td>
                                 <td>{{ calificacion.get_tipo_display }}</td>
-                                <td>{{ calificacion.especificacion }}</td>                                
+                                <td>{{ calificacion.especificacion }}</td>  
+                                <td>
+                                    <a href="{% url 'eliminar_calificacion' calificacion_id=calificacion.id %}" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar esta calificación?');">
+                                        Eliminar
+                                    </a>
+                                    
+                                </td>                              
                             </tr>
+                           
                             {% endfor %}
                         </tbody>
                     </table>
