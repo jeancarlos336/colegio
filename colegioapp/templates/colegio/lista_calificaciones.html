@@ -18,7 +18,8 @@
                                 <th>Alumno</th>
                                 <th>Nota</th>
                                 <th>Semestre</th>
-                                <th>Tipo</th>
+                                <th>Evaluacion</th>
+                                <th>Especificacion</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -29,6 +30,7 @@
                                 <td>{{ calificacion.nota }}</td>
                                 <td>{{ calificacion.semestre }}° Semestre</td>
                                 <td>{{ calificacion.get_tipo_display }}</td>
+                                <td>{{ calificacion.especificacion }}</td>
                                 <td>
                                     <div class="btn-group">
                                         
