@@ -667,3 +667,12 @@ class AnotacionForm(forms.ModelForm):
                 self.add_error('alumno', 'El alumno seleccionado no está matriculado en este curso')
 
         return cleaned_data
+    
+class EditarAsistenciaForm(forms.ModelForm):
+    class Meta:
+        model = RegistroAsistencia
+        fields = ['estado']
+        widgets = {
+            'estado': forms.Select(attrs={'class': 'form-control'})
+        }
+    

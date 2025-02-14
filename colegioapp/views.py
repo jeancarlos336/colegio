@@ -6,7 +6,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from .forms import UsuarioForm,EditarUsuarioForm, AnotacionForm ,EvaluacionForm, InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
+from .forms import UsuarioForm,EditarUsuarioForm, AnotacionForm ,EvaluacionForm,EditarAsistenciaForm,InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView,DetailView,FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Avg, Count, Q
@@ -830,6 +830,30 @@ class EliminarAsistenciaView(DeleteView):
     model = RegistroAsistencia
     success_url = reverse_lazy('listar_asistencia')
     template_name = 'colegio/confirmar_eliminar_asistencia.html'
+    
+class EditarAsistenciaView(LoginRequiredMixin, UpdateView):
+    model = RegistroAsistencia
+    form_class = EditarAsistenciaForm
+    template_name = 'editar_asistencia.html'
+    success_url = reverse_lazy('listar_asistencia')
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': 'Asistencia actualizada exitosamente',
+                'estado': self.object.estado
+            })
+        return response
+
+    def form_invalid(self, form):
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            }, status=400)
+        return super().form_invalid(form)    
 
 @login_required
 def seleccionar_curso(request):
