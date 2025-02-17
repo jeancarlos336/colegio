@@ -108,7 +108,7 @@ MENUS = {
                 'submenu': [
                     {'name': 'Listar Evaluaciones', 'url': 'evaluacion_list'},
                     {'name': 'Agendar Evaluaciones', 'url': 'evaluacion_create'},
-                    {'name': 'Ver Otras Agendas', 'url': 'evaluacion_create'},           
+                    {'name': 'Ver Otras Agendas', 'url': 'evaluacion_otras'},             
                 ]
             },         
             {
