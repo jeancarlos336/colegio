@@ -519,29 +519,41 @@ class AsignacionDeleteView(DeleteView):
     template_name = 'colegio/elimina_asignacionprofe.html'
     success_url = reverse_lazy('asignacion_list')#Redirige a la lista después de eliminar 
     
-
-#calificaciones
 @login_required
 def lista_calificaciones(request):
-    # Primero obtenemos las asignaturas del profesor
-    asignaturas_profesor = Asignatura.objects.filter(profesor=request.user)
-    
-    # Luego obtenemos las calificaciones solo de esas asignaturas
-    calificaciones = Calificacion.objects.filter(
-        asignatura__in=asignaturas_profesor
-    ).select_related(
-        'matricula__alumno', 
-        'asignatura',
-        'matricula__curso'
-    ).order_by(
-        'asignatura__nombre',
-        'matricula__curso',
-        'matricula__alumno__last_name',
-        'matricula__alumno__first_name',
-        '-semestre',
-        'tipo'
-    )
-    
+    # Verificamos si el usuario es ADMIN por su rol
+    if request.user.rol == 'ADMIN':
+        # Si es ADMIN, puede ver todas las calificaciones
+        calificaciones = Calificacion.objects.all().select_related(
+            'matricula__alumno',
+            'asignatura',
+            'matricula__curso'
+        ).order_by(
+            'asignatura__nombre',
+            'matricula__curso',
+            'matricula__alumno__last_name',
+            'matricula__alumno__first_name',
+            '-semestre',
+            'tipo'
+        )
+    else:
+        # Si es profesor, solo ve sus asignaturas
+        asignaturas_profesor = Asignatura.objects.filter(profesor=request.user)
+        calificaciones = Calificacion.objects.filter(
+            asignatura__in=asignaturas_profesor
+        ).select_related(
+            'matricula__alumno',
+            'asignatura',
+            'matricula__curso'
+        ).order_by(
+            'asignatura__nombre',
+            'matricula__curso',
+            'matricula__alumno__last_name',
+            'matricula__alumno__first_name',
+            '-semestre',
+            'tipo'
+        )
+
     # Agrupamos las calificaciones por asignatura y curso para mejor organización
     calificaciones_agrupadas = {}
     for calificacion in calificaciones:
@@ -549,24 +561,27 @@ def lista_calificaciones(request):
         if key not in calificaciones_agrupadas:
             calificaciones_agrupadas[key] = []
         calificaciones_agrupadas[key].append(calificacion)
-    
+
     return render(request, 'colegio/lista_calificaciones.html', {
         'calificaciones_agrupadas': calificaciones_agrupadas
     })
-    
 
 @login_required
 def eliminar_calificacion(request, calificacion_id):
-    calificacion = get_object_or_404(Calificacion, id=calificacion_id, profesor=request.user)
-    
+    # Si es ADMIN, puede eliminar cualquier calificación
+    if request.user.rol == 'ADMIN':
+        calificacion = get_object_or_404(Calificacion, id=calificacion_id)
+    else:
+        # Si es profesor, solo puede eliminar sus propias calificaciones
+        calificacion = get_object_or_404(Calificacion, id=calificacion_id, asignatura__profesor=request.user)
+
     if request.method == 'POST':
         calificacion.delete()
         return redirect('lista_calificaciones')
-    
+
     return render(request, 'colegio/eliminar_calificacion.html', {
         'calificacion': calificacion
     })
-
 
 
 @login_required

@@ -143,7 +143,7 @@ MENUS = {
                 'icon': 'fa fa-check-square',
                 'submenu': [
                     {'name': 'Listar Calificaciones', 'url': 'lista_calificaciones'},
-                    {'name': 'Asignar Calificaciones', 'url': 'seleccionar_curso_calificacion'},
+                    {'name': 'Asignar y Editar Calificaciones', 'url': 'seleccionar_curso_calificacion'},
                 ]
             },
             {

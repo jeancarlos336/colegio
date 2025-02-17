@@ -19,8 +19,10 @@
                                 <th>Nota</th>
                                 <th>Semestre</th>
                                 <th>Evaluacion</th>
-                                <th>Especificacion</th>   
-                                <th>Acciones</th>                            
+                                <th>Especificacion</th>
+                                {% if user.rol == 'ADMIN' %}
+                                     <th>Acciones</th>
+                                {% endif %}                       
                             </tr>
                         </thead>
                         <tbody>
@@ -32,9 +34,10 @@
                                 <td>{{ calificacion.get_tipo_display }}</td>
                                 <td>{{ calificacion.especificacion }}</td>  
                                 <td>
+                                    {% if user.rol in 'ADMIN' %}
                                     <a href="{% url 'eliminar_calificacion' calificacion_id=calificacion.id %}" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar esta calificación?');">
-                                        Eliminar
-                                    </a>
+                                        Eliminar </a>
+                                    {% endif %}                       
                                     
                                 </td>                              
                             </tr>
