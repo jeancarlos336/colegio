@@ -4,6 +4,7 @@
 <div class="form-container fade-in">
     <h2 class="form-title">Registro de Asistencia</h2>
     <h4>{{ asignatura.nombre }} - {{ asignatura.curso }}</h4>
+    <p class="text-muted">Fecha y hora: {{ fecha_hora|date:"d/m/Y H:i" }}</p>
     
     <form method="post" class="mt-4">
         <div class="form-group">
@@ -21,8 +22,6 @@
                     <tr>
                         <td>
                             {{ form.matricula }}
-                            {{ form.instance.matricula.alumno.nombre }}
-                            {{ form.instance.matricula.alumno.apellido }}
                         </td>
                         <td>{{ form.estado }}</td>
                     </tr>

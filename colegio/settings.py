@@ -102,6 +102,7 @@ TIME_ZONE = "America/Santiago"
 USE_I18N = True
 USE_TZ = True
 
+
 # Static files configuration
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [

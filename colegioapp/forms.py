@@ -315,19 +315,28 @@ class PagoMensualidadFiltroForm(forms.Form):
     )    
     
 
+
 class AsistenciaSeleccionForm(forms.Form):
     asignatura = forms.ModelChoiceField(
-        queryset=Asignatura.objects.none(),  # Inicialmente vacío
+        queryset=Asignatura.objects.none(),
         label='Seleccione la asignatura',
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-
+    fecha_hora = forms.DateTimeField(
+        label='Fecha y Hora',
+        widget=forms.DateTimeInput(
+            attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+                'max': timezone.now().strftime('%Y-%m-%dT%H:%M'),  # Restricción en el HTML
+            }
+        ),
+        initial=timezone.now
+    )
     def __init__(self, *args, **kwargs):
-        usuario = kwargs.pop('usuario', None)  # Obtenemos el usuario del contexto
+        usuario = kwargs.pop('usuario', None)
         super().__init__(*args, **kwargs)
-
         if usuario:
-            # Filtrar asignaturas por el profesor (usuario) actual
             self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=usuario)
 
 class RegistroAsistenciaForm(forms.ModelForm):
@@ -669,10 +678,23 @@ class AnotacionForm(forms.ModelForm):
         return cleaned_data
     
 class EditarAsistenciaForm(forms.ModelForm):
+    fecha_hora = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={
+            'class': 'form-control',
+            'type': 'datetime-local',
+            'max': timezone.now().strftime('%Y-%m-%dT%H:%M'),  # Restricción en el HTML
+        }),
+        label='Fecha y Hora',
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S.%f%z']
+    )
+    
     class Meta:
         model = RegistroAsistencia
-        fields = ['estado']
-        widgets = {
-            'estado': forms.Select(attrs={'class': 'form-control'})
-        }
-    
+        fields = ['estado', 'fecha_hora']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.fecha_hora:
+            # Convertir la fecha de la base de datos al formato datetime-local
+            local_datetime = self.instance.fecha_hora.astimezone()  # Convierte a la zona horaria local
+            self.initial['fecha_hora'] = local_datetime.strftime('%Y-%m-%dT%H:%M')

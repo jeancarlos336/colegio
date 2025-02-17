@@ -42,7 +42,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from django.http import HttpResponseRedirect
 from django.views.decorators.http import require_http_methods
-
+from django.core.exceptions import ValidationError
 
 
 def home(request):
@@ -830,50 +830,58 @@ class EliminarAsistenciaView(DeleteView):
     model = RegistroAsistencia
     success_url = reverse_lazy('listar_asistencia')
     template_name = 'colegio/confirmar_eliminar_asistencia.html'
-    
+
 class EditarAsistenciaView(LoginRequiredMixin, UpdateView):
     model = RegistroAsistencia
     form_class = EditarAsistenciaForm
     template_name = 'editar_asistencia.html'
     success_url = reverse_lazy('listar_asistencia')
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        if self.object and self.object.fecha_hora:
+            # Convertir la fecha de la base de datos al formato datetime-local
+            local_datetime = self.object.fecha_hora.astimezone()
+            form.fields['fecha_hora'].initial = local_datetime.strftime('%Y-%m-%dT%H:%M')
+        return form
+
     def form_valid(self, form):
-        response = super().form_valid(form)
+        instance = form.save(commit=False)
+        # Asegurarse de que la fecha se guarde con la zona horaria correcta
+        if instance.fecha_hora:
+            instance.fecha_hora = instance.fecha_hora.astimezone()
+        instance.save()
+        
         if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 'success': True,
                 'message': 'Asistencia actualizada exitosamente',
                 'estado': self.object.estado
             })
-        return response
-
-    def form_invalid(self, form):
-        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': False,
-                'errors': form.errors
-            }, status=400)
-        return super().form_invalid(form)    
-
+        return super().form_valid(form)
+       
 @login_required
 def seleccionar_curso(request):
     if request.method == 'POST':
         form = AsistenciaSeleccionForm(request.POST, usuario=request.user)
         if form.is_valid():
             request.session['asignatura_id'] = form.cleaned_data['asignatura'].id
+            request.session['fecha_hora'] = form.cleaned_data['fecha_hora'].isoformat()
             return redirect('tomar_asistencia')
     else:
         form = AsistenciaSeleccionForm(usuario=request.user)
     
     return render(request, 'colegio/seleccionar_curso.html', {'form': form})
 
-
 @login_required
 def tomar_asistencia(request):
     asignatura_id = request.session.get('asignatura_id')
-    if not asignatura_id:
+    fecha_hora_str = request.session.get('fecha_hora')
+    
+    if not asignatura_id or not fecha_hora_str:
         return redirect('seleccionar_curso')
     
+    fecha_hora = datetime.fromisoformat(fecha_hora_str)
     asignatura = Asignatura.objects.get(id=asignatura_id)
     matriculas = Matricula.objects.filter(curso=asignatura.curso)
     
@@ -884,7 +892,7 @@ def tomar_asistencia(request):
                 if form.is_valid():
                     registro = form.save(commit=False)
                     registro.asignatura = asignatura
-                    registro.fecha_hora = timezone.now()
+                    registro.fecha_hora = fecha_hora
                     registro.save()
             messages.success(request, 'Asistencia registrada correctamente')
             return redirect('dashboard')
@@ -894,7 +902,8 @@ def tomar_asistencia(request):
     
     return render(request, 'colegio/tomar_asistencia.html', {
         'formset': formset,
-        'asignatura': asignatura
+        'asignatura': asignatura,
+        'fecha_hora': fecha_hora
     })
 
 #CALIFICACIONES

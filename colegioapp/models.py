@@ -133,7 +133,7 @@ class Asignatura(models.Model):
 
 class RegistroAsistencia(models.Model):
     matricula = models.ForeignKey('Matricula', on_delete=models.CASCADE)
-    fecha_hora = models.DateTimeField(auto_now_add=True)  # Cambiado a auto_now_add
+    fecha_hora = models.DateTimeField()  # Removido auto_now_add
     asignatura = models.ForeignKey('Asignatura', on_delete=models.CASCADE)
     estado = models.CharField(max_length=20, choices=(
         ('PRESENTE', 'Presente'),
