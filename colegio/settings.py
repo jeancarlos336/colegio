@@ -11,7 +11,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Configuraciones de seguridad
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key-change-me')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+#ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+
+
+
+# Manejo más robusto de ALLOWED_HOSTS
+ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS', '')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',') if host.strip()]
+
+# Agregar estos valores por defecto si la lista está vacía
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = [
+        'localhost',
+        '127.0.0.1',
+        '0.0.0.0',
+        'aulavirtual-mqv',
+        '10.201.71.215',
+    ]
+#----------------------
 
 # Configuraciones de autenticación
 LOGIN_REDIRECT_URL = 'dashboard'
@@ -126,3 +143,13 @@ if not DEBUG:
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Configuraciones adicionales de seguridad
+CSRF_TRUSTED_ORIGINS = [
+    f'http://{host}:8000' for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1', '0.0.0.0']
+]
+
+# Si estás usando CORS
+CORS_ALLOWED_ORIGINS = [
+    f'http://{host}:8000' for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1', '0.0.0.0']
+]
