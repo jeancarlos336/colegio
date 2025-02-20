@@ -128,7 +128,8 @@ class Asignatura(models.Model):
     profesor = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'rol': 'PROFESOR'}, related_name='asignaturas')
     
     def __str__(self):
-        return f"{self.nombre} - {self.sede.nombre} {f'- {self.curso.nombre}' if self.curso else ''}"
+        return f"{self.nombre} {f'- {self.curso.nombre}' if self.curso else ''}"
+   
 
 
 class RegistroAsistencia(models.Model):

@@ -1,0 +1,105 @@
+<!-- templates/bitacora/listar_bitacora.html -->
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <h2>Mis Bitácoras</h2>
+    
+    <!-- Barra de búsqueda -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form method="GET" class="form-inline">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Buscar por asignatura, observación o fecha..." 
+                           value="{{ search_query }}">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit">Buscar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-6 text-right">
+            {% if is_profesor %}
+                <a href="{% url 'crear_bitacora' %}" class="btn btn-success">Nueva Bitácora</a>
+            {% endif %}            
+        </div>
+    </div>
+
+    <!-- Tabla de bitácoras -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Asignatura</th>
+                    {% if is_director %}
+                    <th>Profesor</th>  <!-- Solo visible para directores -->
+                    {% endif %}
+                    <th>Fecha</th>
+                    <th>Observación</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bitacora in page_obj %}
+                <tr>
+                    <td>{{ bitacora.asignatura }}</td>
+                    {% if is_director %}
+                    <td>{{ bitacora.usuario.first_name }} {{ bitacora.usuario.last_name }}</td>
+                    {% endif %}
+                    <td>{{ bitacora.fecha }}</td>
+                    <td>{{ bitacora.observacion|truncatechars:100 }}</td>
+                    <td>
+                        <a href="{% url 'editar_bitacora' bitacora.pk %}" 
+                           class="btn btn-sm btn-primary">Editar</a>
+                        <a href="{% url 'eliminar_bitacora' bitacora.pk %}" 
+                           class="btn btn-sm btn-danger">Eliminar</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">No hay bitácoras registradas</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">Primera</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Anterior</a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Siguiente</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Última</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

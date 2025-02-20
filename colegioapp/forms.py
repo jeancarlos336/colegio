@@ -726,4 +726,9 @@ class BitacoraSeleccionForm(forms.Form):
         usuario = kwargs.pop('usuario', None)
         super().__init__(*args, **kwargs)
         if usuario:
-            self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=usuario)
+            if usuario.rol == 'DIRECTOR':
+                # Mostrar todas las asignaturas si el usuario es un director
+                self.fields['asignatura'].queryset = Asignatura.objects.all()
+            else:
+                # Mostrar solo las asignaturas asociadas al profesor
+                self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=usuario)

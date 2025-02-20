@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <h2>Confirmar Eliminación</h2>
+    <p>¿Está seguro que desea eliminar la bitácora de {{ bitacora.asignatura }} del {{ bitacora.fecha }}?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirmar Eliminación</button>
+        <a href="{% url 'listar_bitacora' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

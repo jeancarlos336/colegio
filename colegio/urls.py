@@ -69,7 +69,7 @@ from colegioapp.views import (
     EvaluacionListView, EvaluacionCreateView, EvaluacionDetailView, EvaluacionUpdateView, EvaluacionDeleteView, TodasEvaluacionListView,  
     
     #bitacora
-    crear_bitacora,
+    crear_bitacora,eliminar_bitacora,editar_bitacora,listar_bitacora,
     
     # Informes views
     seleccionar_parametros_informe,
@@ -214,8 +214,11 @@ urlpatterns = [
 
     path('anotacion/crear/', CrearAnotacionView.as_view(), name='crear_anotacion'),
     path('api/alumnos-por-curso/', get_alumnos_curso, name='alumnos_por_curso'),
-    
+
+    path('bitacora/', listar_bitacora, name='listar_bitacora'),
     path('bitacora/crear/', crear_bitacora, name='crear_bitacora'),
+    path('bitacora/editar/<int:pk>/', editar_bitacora, name='editar_bitacora'),
+    path('bitacora/eliminar/<int:pk>/', eliminar_bitacora, name='eliminar_bitacora'),
    
 ]
 

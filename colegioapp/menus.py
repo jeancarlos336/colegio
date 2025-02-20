@@ -191,11 +191,11 @@ MENUS = {
                 'label': 'Bitacora',
                 'url': 'menu_Bitacora',
                 'icon': 'fa fa-address-card',
-                'submenu': [                    
+                'submenu': [   
+                    {'name': 'Listar Bitacora', 'url': 'listar_bitacora'},                 
                     {'name': 'Crear Bitacora', 'url': 'crear_bitacora'},                            
                 ]
-            }
-                        
+            }                    
               
                  
         ],
@@ -253,7 +253,17 @@ MENUS = {
                 'submenu': [
                     {'name': 'Listar Anotaciones', 'url': 'lista_anotaciones'},                                            
                 ]
-            }          
+            },
+            {
+                'label': 'Bitacora',
+                'url': 'menu_Bitacora',
+                'icon': 'fa fa-address-card',
+                'submenu': [   
+                    {'name': 'Listar Bitacora', 'url': 'listar_bitacora'},               
+                                          
+                ]
+            }      
+                      
                                                  
                  
         ],

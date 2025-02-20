@@ -44,10 +44,9 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseForbidden
-
-
 from django.db import transaction
 from django.db.utils import IntegrityError
+
 
 
 
@@ -2074,7 +2073,7 @@ def get_alumnos_curso(request):
         'success': True,
         'data': []
     })
-    
+# Bitacoras   ---------------------------------------------
 @login_required
 def crear_bitacora(request):
     if request.method == 'POST':
@@ -2086,7 +2085,88 @@ def crear_bitacora(request):
                 fecha=form.cleaned_data['fecha'],
                 observacion=form.cleaned_data['observacion']
             )
-            return redirect('dashboard_profesor')  # Cambia la ruta según tus necesidades
+            return redirect('listar_bitacora')  # Cambia la ruta según tus necesidades
     else:
         form = BitacoraSeleccionForm(usuario=request.user)
     return render(request, 'crear_bitacora.html', {'form': form})
+
+
+@login_required
+def listar_bitacora(request):
+    # Obtener el término de búsqueda
+    search_query = request.GET.get('search', '')
+    
+    # Filtrar las bitácoras según el rol del usuario
+    if request.user.rol == 'DIRECTOR':
+        bitacoras = Bitacora.objects.all()  # Obtiene todas las bitácoras
+    else:
+        bitacoras = Bitacora.objects.filter(usuario=request.user)  # Solo las del profesor
+    
+    # Aplicar búsqueda si existe un término
+    if search_query:
+        bitacoras = bitacoras.filter(
+            Q(asignatura__nombre__icontains=search_query) |
+            Q(observacion__icontains=search_query) |
+            Q(fecha__icontains=search_query) |
+            # Agregamos búsqueda por nombre de profesor para el director
+            Q(usuario__nombre__icontains=search_query) |
+            Q(usuario__apellido__icontains=search_query)
+        )
+    
+    # Ordenar por fecha descendente
+    bitacoras = bitacoras.order_by('-fecha')
+    
+    # Configurar la paginación
+    paginator = Paginator(bitacoras, 10)  # 10 items por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'is_director': request.user.rol == 'DIRECTOR', 
+        'is_profesor': request.user.rol == 'PROFESOR' # Para usar en el template
+    }
+    return render(request, 'listar_bitacora.html', context)
+
+@login_required
+def editar_bitacora(request, pk):
+    
+    if request.user.rol == 'DIRECTOR':
+        bitacora = get_object_or_404(Bitacora, pk=pk)
+    else:
+        bitacora = get_object_or_404(Bitacora, pk=pk, usuario=request.user)   
+    
+    if request.method == 'POST':
+        form = BitacoraSeleccionForm(request.POST, usuario=request.user)
+        if form.is_valid():
+            bitacora.asignatura = form.cleaned_data['asignatura']
+            bitacora.fecha = form.cleaned_data['fecha']
+            bitacora.observacion = form.cleaned_data['observacion']
+            bitacora.save()
+            return redirect('listar_bitacora')
+    else:
+        # Formatear la fecha al formato que espera el input type="date"
+        initial_data = {
+            'asignatura': bitacora.asignatura,
+            'fecha': bitacora.fecha.strftime('%Y-%m-%d'),  # Formatear la fecha
+            'observacion': bitacora.observacion
+        }
+        form = BitacoraSeleccionForm(
+            usuario=request.user,
+            initial=initial_data
+        )
+    
+    return render(request, 'editar_bitacora.html', {'form': form})
+
+@login_required
+def eliminar_bitacora(request, pk):
+    if request.user.rol == 'DIRECTOR':
+        bitacora = get_object_or_404(Bitacora, pk=pk)
+    else:
+        bitacora = get_object_or_404(Bitacora, pk=pk, usuario=request.user)   
+    
+    if request.method == 'POST':
+        bitacora.delete()
+        return redirect('listar_bitacora')
+    return render(request, 'eliminar_bitacora.html', {'bitacora': bitacora})
