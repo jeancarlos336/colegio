@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Usuario, Sede,Evaluacion, Curso, Asignatura, Anotacion, DiaSemana, Matricula,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia,RegistroAsistencia, Asignatura
+from .models import Usuario,Bitacora, Sede,Evaluacion, Curso, Asignatura, Anotacion, DiaSemana, Matricula,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia,RegistroAsistencia, Asignatura
 from datetime import datetime, date
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -698,3 +698,32 @@ class EditarAsistenciaForm(forms.ModelForm):
             # Convertir la fecha de la base de datos al formato datetime-local
             local_datetime = self.instance.fecha_hora.astimezone()  # Convierte a la zona horaria local
             self.initial['fecha_hora'] = local_datetime.strftime('%Y-%m-%dT%H:%M')
+            
+            
+
+class BitacoraSeleccionForm(forms.Form):
+    asignatura = forms.ModelChoiceField(
+        queryset=Asignatura.objects.none(),
+        label='Seleccione la asignatura',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    fecha = forms.DateField(
+        label='Fecha',
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+    observacion = forms.CharField(
+        label='Observación',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ingrese la observación'
+        })
+    )
+
+    def __init__(self, *args, **kwargs):
+        usuario = kwargs.pop('usuario', None)
+        super().__init__(*args, **kwargs)
+        if usuario:
+            self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=usuario)

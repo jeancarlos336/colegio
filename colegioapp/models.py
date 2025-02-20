@@ -318,3 +318,18 @@ class Anotacion(models.Model):
     
     def __str__(self):
         return f"Anotación {self.nivel} - {self.alumno.get_full_name()}"   
+    
+    
+class Bitacora(models.Model):
+    asignatura = models.ForeignKey(Asignatura, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        limit_choices_to={'rol': 'PROFESOR'}
+    )
+    fecha = models.DateField()
+    observacion = models.TextField()
+    
+    def __str__(self):
+        return f"{self.asignatura} - {self.usuario} - {self.fecha}"
+

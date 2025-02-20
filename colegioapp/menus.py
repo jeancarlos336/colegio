@@ -186,7 +186,17 @@ MENUS = {
                     {'name': 'Listar Anotaciones', 'url': 'lista_anotaciones'},
                     {'name': 'Crear Anotaciones', 'url': 'crear_anotacion'},                            
                 ]
-            }                  
+            },   
+            {
+                'label': 'Bitacora',
+                'url': 'menu_Bitacora',
+                'icon': 'fa fa-address-card',
+                'submenu': [                    
+                    {'name': 'Crear Bitacora', 'url': 'crear_bitacora'},                            
+                ]
+            }
+                        
+              
                  
         ],
                 

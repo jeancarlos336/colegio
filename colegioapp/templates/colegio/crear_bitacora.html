@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="form-container fade-in">
+    <h2 class="form-title">Agregar Observación a la Bitácora</h2>
+    <form method="post">
+        <div class="form-group">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

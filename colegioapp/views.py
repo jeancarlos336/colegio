@@ -1,12 +1,12 @@
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required,user_passes_test
-from .models import Sede, Usuario,Evaluacion, Anotacion, Curso, Matricula,Asignatura,DiaSemana,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia
+from .models import Sede,Bitacora, Usuario,Evaluacion, Anotacion, Curso, Matricula,Asignatura,DiaSemana,AsignacionProfesorSede,Calificacion,Horario,PagoMensualidad,RegistroAsistencia
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from .forms import UsuarioForm,EditarUsuarioForm, AnotacionForm ,EvaluacionForm,EditarAsistenciaForm,InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
+from .forms import UsuarioForm,EditarUsuarioForm, AnotacionForm,BitacoraSeleccionForm,EvaluacionForm,EditarAsistenciaForm,InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView,DetailView,FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Avg, Count, Q
@@ -43,6 +43,12 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from django.http import HttpResponseRedirect
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
+from django.http import HttpResponseForbidden
+
+
+from django.db import transaction
+from django.db.utils import IntegrityError
+
 
 
 def home(request):
@@ -888,6 +894,8 @@ def seleccionar_curso(request):
     
     return render(request, 'colegio/seleccionar_curso.html', {'form': form})
 
+
+
 @login_required
 def tomar_asistencia(request):
     asignatura_id = request.session.get('asignatura_id')
@@ -903,14 +911,38 @@ def tomar_asistencia(request):
     if request.method == 'POST':
         formset = RegistroAsistenciaFormSet(request.POST)
         if formset.is_valid():
-            for form in formset:
-                if form.is_valid():
-                    registro = form.save(commit=False)
-                    registro.asignatura = asignatura
-                    registro.fecha_hora = fecha_hora
-                    registro.save()
-            messages.success(request, 'Asistencia registrada correctamente')
-            return redirect('dashboard')
+            try:
+                with transaction.atomic():
+                    # Verificar si ya existen registros para esta fecha y asignatura
+                    registros_existentes = RegistroAsistencia.objects.filter(
+                        asignatura=asignatura,
+                        fecha_hora=fecha_hora
+                    ).exists()
+                    
+                    if registros_existentes:
+                        messages.warning(
+                            request, 
+                            'Ya existe un registro de asistencia para esta fecha y asignatura.'
+                        )
+                        return HttpResponseRedirect(reverse('dashboard'))
+                    
+                    # Guardar todos los registros en una sola transacción
+                    for form in formset:
+                        if form.is_valid():
+                            registro = form.save(commit=False)
+                            registro.asignatura = asignatura
+                            registro.fecha_hora = fecha_hora
+                            registro.save()
+                    
+                    messages.success(request, 'Asistencia registrada correctamente')
+                    return HttpResponseRedirect(reverse('dashboard'))
+                    
+            except IntegrityError:
+                messages.error(
+                    request, 
+                    'Error al guardar la asistencia. Por favor, no haga doble clic al guardar.'
+                )
+                return HttpResponseRedirect(request.path)
     else:
         initial = [{'matricula': matricula.id} for matricula in matriculas]
         formset = RegistroAsistenciaFormSet(initial=initial)
@@ -920,7 +952,7 @@ def tomar_asistencia(request):
         'asignatura': asignatura,
         'fecha_hora': fecha_hora
     })
-
+    
 #CALIFICACIONES
 # Decorador que asegura que el usuario esté autenticado para acceder a esta vista
 @login_required
@@ -2042,3 +2074,19 @@ def get_alumnos_curso(request):
         'success': True,
         'data': []
     })
+    
+@login_required
+def crear_bitacora(request):
+    if request.method == 'POST':
+        form = BitacoraSeleccionForm(request.POST, usuario=request.user)
+        if form.is_valid():
+            Bitacora.objects.create(
+                asignatura=form.cleaned_data['asignatura'],
+                usuario=request.user,
+                fecha=form.cleaned_data['fecha'],
+                observacion=form.cleaned_data['observacion']
+            )
+            return redirect('dashboard_profesor')  # Cambia la ruta según tus necesidades
+    else:
+        form = BitacoraSeleccionForm(usuario=request.user)
+    return render(request, 'crear_bitacora.html', {'form': form})
