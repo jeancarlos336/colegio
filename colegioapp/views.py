@@ -2206,29 +2206,32 @@ def generar_informe_bitacora(request):
     return render(request, 'informe_bitacora.html', {'form': form, 'bitacoras': bitacoras})
 
 
-
-
 def generar_pdf(request, asignatura, bitacoras, user):
     response = BytesIO()
-
-    # Configurar el documento en orientación horizontal (landscape) y márgenes personalizados
+    
+    # Calculate page width and margins
+    page_width = landscape(letter)[0]
+    margin = 1 * inch
+    usable_width = page_width - (2 * margin)
+    
+    # Configure document with landscape orientation and margins
     doc = SimpleDocTemplate(
         response,
-        pagesize=landscape(letter),  # Orientación horizontal
-        leftMargin=1.5 * inch,       # Margen izquierdo de 1.5 pulgadas
-        rightMargin=1.5 * inch,       # Margen derecho de 1.5 pulgadas
-        topMargin=1 * inch,           # Margen superior de 1 pulgada
-        bottomMargin=1 * inch         # Margen inferior de 1 pulgada
+        pagesize=landscape(letter),
+        leftMargin=margin,
+        rightMargin=margin,
+        topMargin=margin,
+        bottomMargin=margin
     )
-
-    # Estilos para el texto
+    
+    # Styles for text
     styles = getSampleStyleSheet()
     style_normal = styles['Normal']
     style_heading = styles['Heading1']
-
-    # Título y detalles del profesor
+    
+    # Title and professor details
     if asignatura:
-        titulo = f"BITÁCORA - {asignatura.nombre} {asignatura.curso}"
+        titulo = f"BITÁCORA - {asignatura.nombre}"
         profesor = f"Profesor: {asignatura.profesor}"
     else:
         if user.rol == 'PROFESOR':
@@ -2240,45 +2243,65 @@ def generar_pdf(request, asignatura, bitacoras, user):
         else:
             titulo = "BITÁCORA - ACCESO RESTRINGIDO"
             profesor = ""
-
-    # Crear una lista de elementos para el PDF
+    
+    # Create list of elements for PDF
     elements = []
-
-    # Agregar el título y detalles
     elements.append(Paragraph(titulo, style_heading))
     elements.append(Paragraph(profesor, style_normal))
     elements.append(Paragraph(f"Fecha de impresión: {datetime.now().date()}", style_normal))
-
-    # Agregar un espacio después del título
     elements.append(Spacer(1, 12))
-
-    # Crear una tabla con las bitácoras
-    data = [["Fecha", "Observación"]]
+    
+    # Calculate column widths with fixed widths only for fecha and observacion
+    col_widths = [
+        usable_width * 0.1,    # Fecha (10%)
+        None,                  # Asignatura (auto)
+        None,                  # Curso (auto)
+        usable_width * 0.6,    # Observación (60%)
+    ]
+    
+    # Create table with bitácoras
+    data = [["Fecha", "Asignatura", "Curso", "Observación"]]
+    
     for bitacora in bitacoras:
-        # Usar Paragraph para manejar texto largo en la celda de observación
-        observacion = Paragraph(bitacora.observacion, style_normal)
-        data.append([str(bitacora.fecha), observacion])
-
-    # Definir el estilo de la tabla
-    tabla = Table(data, colWidths=[1.5 * inch, 8 * inch])  # Ajustar el ancho de las columnas
+        asignatura_curso = str(bitacora.asignatura)
+        partes = asignatura_curso.split(" - ")
+        nombre_asignatura = partes[0]
+        nombre_curso = partes[1] if len(partes) > 1 else "Sin curso"
+        
+        # Create paragraphs with appropriate styles
+        fecha_paragraph = Paragraph(str(bitacora.fecha), style_normal)
+        asignatura_paragraph = Paragraph(nombre_asignatura, style_normal)
+        curso_paragraph = Paragraph(nombre_curso, style_normal)
+        observacion_paragraph = Paragraph(bitacora.observacion, style_normal)
+        
+        data.append([fecha_paragraph, asignatura_paragraph, curso_paragraph, observacion_paragraph])
+    
+    # Create table with calculated widths
+    tabla = Table(data, colWidths=col_widths)
+    
+    # Define custom colors
+    header_color = colors.HexColor('#4A4A4A')  # Un gris más oscuro para el encabezado
+    row_color = colors.HexColor('#FFFFFF')     # Blanco para las filas
+    
+    # Apply table styles
     tabla.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('BACKGROUND', (0, 0), (-1, 0), header_color),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Alinear el contenido al tope de las celdas
+        ('BACKGROUND', (0, 1), (-1, -1), row_color),
+        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
-
-    # Agregar la tabla a los elementos
+    
     elements.append(tabla)
-
-    # Construir el PDF
     doc.build(elements)
-
-    # Devolver el PDF como respuesta
+    
     response.seek(0)
     pdf_response = HttpResponse(response.getvalue(), content_type='application/pdf')
     pdf_response['Content-Disposition'] = f'inline; filename="bitacora.pdf"'
