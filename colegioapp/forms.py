@@ -732,3 +732,20 @@ class BitacoraSeleccionForm(forms.Form):
             else:
                 # Mostrar solo las asignaturas asociadas al profesor
                 self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=usuario)
+                
+
+
+class BitacoraForm(forms.Form):
+    fecha_inicio = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    fecha_fin = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    asignatura = forms.ModelChoiceField(queryset=Asignatura.objects.none(), required=False, empty_label="Todas las asignaturas")
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            if user.rol == 'PROFESOR':
+                self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=user)
+            else:
+                self.fields['asignatura'].queryset = Asignatura.objects.all()

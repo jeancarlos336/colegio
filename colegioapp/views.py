@@ -6,7 +6,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from .forms import UsuarioForm,EditarUsuarioForm, AnotacionForm,BitacoraSeleccionForm,EvaluacionForm,EditarAsistenciaForm,InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
+from .forms import UsuarioForm,EditarUsuarioForm,BitacoraForm, AnotacionForm,BitacoraSeleccionForm,EvaluacionForm,EditarAsistenciaForm,InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView,DetailView,FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Avg, Count, Q
@@ -14,7 +14,7 @@ from django.utils import timezone
 import os
 from django.http import FileResponse, HttpResponse, Http404
 from django.conf import settings
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
 from urllib.parse import urlencode
 from django.utils.timezone import now
@@ -46,6 +46,8 @@ from django.core.exceptions import ValidationError
 from django.http import HttpResponseForbidden
 from django.db import transaction
 from django.db.utils import IntegrityError
+from django.views.generic import TemplateView
+
 
 
 
@@ -2170,3 +2172,115 @@ def eliminar_bitacora(request, pk):
         bitacora.delete()
         return redirect('listar_bitacora')
     return render(request, 'eliminar_bitacora.html', {'bitacora': bitacora})
+
+
+
+@login_required
+def generar_informe_bitacora(request):
+    form = BitacoraForm(user=request.user)
+    bitacoras = None
+
+    if request.method == 'POST':
+        form = BitacoraForm(request.POST, user=request.user)
+        if form.is_valid():
+            fecha_inicio = form.cleaned_data['fecha_inicio']
+            fecha_fin = form.cleaned_data['fecha_fin']
+            asignatura = form.cleaned_data.get('asignatura')  # Obtener asignatura o None
+            
+            if asignatura:
+                bitacoras = Bitacora.objects.filter(asignatura=asignatura, fecha__range=[fecha_inicio, fecha_fin])
+            else:
+                if request.user.rol == 'PROFESOR':  
+                    # Si es profesor, solo puede ver sus propias bitácoras
+                    bitacoras = Bitacora.objects.filter(asignatura__profesor=request.user, fecha__range=[fecha_inicio, fecha_fin])
+                elif request.user.rol == 'DIRECTOR':  
+                    # Si es director, puede ver todas las bitácoras
+                    bitacoras = Bitacora.objects.filter(fecha__range=[fecha_inicio, fecha_fin])
+                else:
+                    # Otros roles no pueden ver bitácoras sin asignatura seleccionada
+                    bitacoras = None
+
+            if bitacoras is not None:
+                return generar_pdf(request, asignatura, bitacoras, request.user)
+    
+    return render(request, 'informe_bitacora.html', {'form': form, 'bitacoras': bitacoras})
+
+
+
+
+def generar_pdf(request, asignatura, bitacoras, user):
+    response = BytesIO()
+
+    # Configurar el documento en orientación horizontal (landscape) y márgenes personalizados
+    doc = SimpleDocTemplate(
+        response,
+        pagesize=landscape(letter),  # Orientación horizontal
+        leftMargin=1.5 * inch,       # Margen izquierdo de 1.5 pulgadas
+        rightMargin=1.5 * inch,       # Margen derecho de 1.5 pulgadas
+        topMargin=1 * inch,           # Margen superior de 1 pulgada
+        bottomMargin=1 * inch         # Margen inferior de 1 pulgada
+    )
+
+    # Estilos para el texto
+    styles = getSampleStyleSheet()
+    style_normal = styles['Normal']
+    style_heading = styles['Heading1']
+
+    # Título y detalles del profesor
+    if asignatura:
+        titulo = f"BITÁCORA - {asignatura.nombre} {asignatura.curso}"
+        profesor = f"Profesor: {asignatura.profesor}"
+    else:
+        if user.rol == 'PROFESOR':
+            titulo = "BITÁCORA - TODAS MIS ASIGNATURAS"
+            profesor = f"Profesor: {user}"
+        elif user.rol == 'DIRECTOR':
+            titulo = "BITÁCORA - TODAS LAS ASIGNATURAS"
+            profesor = "Profesor: Varios"
+        else:
+            titulo = "BITÁCORA - ACCESO RESTRINGIDO"
+            profesor = ""
+
+    # Crear una lista de elementos para el PDF
+    elements = []
+
+    # Agregar el título y detalles
+    elements.append(Paragraph(titulo, style_heading))
+    elements.append(Paragraph(profesor, style_normal))
+    elements.append(Paragraph(f"Fecha de impresión: {datetime.now().date()}", style_normal))
+
+    # Agregar un espacio después del título
+    elements.append(Spacer(1, 12))
+
+    # Crear una tabla con las bitácoras
+    data = [["Fecha", "Observación"]]
+    for bitacora in bitacoras:
+        # Usar Paragraph para manejar texto largo en la celda de observación
+        observacion = Paragraph(bitacora.observacion, style_normal)
+        data.append([str(bitacora.fecha), observacion])
+
+    # Definir el estilo de la tabla
+    tabla = Table(data, colWidths=[1.5 * inch, 8 * inch])  # Ajustar el ancho de las columnas
+    tabla.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Alinear el contenido al tope de las celdas
+    ]))
+
+    # Agregar la tabla a los elementos
+    elements.append(tabla)
+
+    # Construir el PDF
+    doc.build(elements)
+
+    # Devolver el PDF como respuesta
+    response.seek(0)
+    pdf_response = HttpResponse(response.getvalue(), content_type='application/pdf')
+    pdf_response['Content-Disposition'] = f'inline; filename="bitacora.pdf"'
+    
+    return pdf_response

@@ -88,6 +88,7 @@ class Usuario(AbstractUser):
         return self.username
 
 
+
 # Modelo de Asignación de Profesor a Sede
 class AsignacionProfesorSede(models.Model):
     usuario = models.ForeignKey('Usuario', on_delete=models.CASCADE, related_name='asignaciones_sede')
@@ -115,7 +116,7 @@ class Curso(models.Model):
     profesor_jefe = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, related_name='cursos_dirigidos')
     
     def __str__(self):
-        return f"{self.nombre} - {self.sede.nombre} - {self.año}"
+        return f"{self.nombre} -  {self.año}"
 
 # Modelo de Asignatura actualizado
 

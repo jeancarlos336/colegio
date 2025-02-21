@@ -69,7 +69,7 @@ from colegioapp.views import (
     EvaluacionListView, EvaluacionCreateView, EvaluacionDetailView, EvaluacionUpdateView, EvaluacionDeleteView, TodasEvaluacionListView,  
     
     #bitacora
-    crear_bitacora,eliminar_bitacora,editar_bitacora,listar_bitacora,
+    crear_bitacora,eliminar_bitacora,editar_bitacora,listar_bitacora,generar_informe_bitacora,
     
     # Informes views
     seleccionar_parametros_informe,
@@ -219,6 +219,7 @@ urlpatterns = [
     path('bitacora/crear/', crear_bitacora, name='crear_bitacora'),
     path('bitacora/editar/<int:pk>/', editar_bitacora, name='editar_bitacora'),
     path('bitacora/eliminar/<int:pk>/', eliminar_bitacora, name='eliminar_bitacora'),
+    path('informe/', generar_informe_bitacora, name='generar_informe_bitacora'), 
    
 ]
 

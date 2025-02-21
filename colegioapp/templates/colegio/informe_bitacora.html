@@ -1,0 +1,14 @@
+<!-- templates/bitacora/informe.html -->
+{% extends 'base.html' %}
+{% load static %}
+    
+{% block contenido %}
+<div class="form-container fade-in">
+    <h2 class="form-title">Informe de Bitácora</h2>
+    <h1>Generar Informe de Bitácora</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Generar Informe</button>
+    </form>
+{% endblock %}
