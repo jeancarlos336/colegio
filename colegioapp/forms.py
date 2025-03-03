@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.forms import modelformset_factory,formset_factory
 from calendar import month_name
-
+from datetime import timedelta
 
 class SedeForm(forms.ModelForm):
     class Meta:
@@ -345,16 +345,15 @@ class AsistenciaSeleccionForm(forms.Form):
         fecha_hora = self.cleaned_data.get('fecha_hora')
         ahora = timezone.now()
         
-        # Verificamos que la fecha no sea posterior a la actual
-        if fecha_hora and fecha_hora > ahora:
-            raise forms.ValidationError("No puedes registrar asistencia para una fecha y hora futura.")
+        # Añadimos un margen de tolerancia de 5 minutos
+        tiempo_maximo_permitido = ahora + timedelta(minutes=5)
         
-        # Si quieres permitir hasta X minutos/horas en el pasado:
-        # limite_pasado = ahora - datetime.timedelta(days=7)  # ejemplo: hasta 7 días atrás
-        # if fecha_hora and fecha_hora < limite_pasado:
-        #     raise forms.ValidationError("No puedes registrar asistencia para fechas anteriores a 7 días.")
+        # Verificamos que la fecha no sea posterior al tiempo máximo permitido
+        if fecha_hora and fecha_hora > tiempo_maximo_permitido:
+            raise forms.ValidationError(f"No puedes registrar asistencia para una fecha y hora futura. Se permite un margen de hasta 5 minutos.")
         
-        return fecha_hora    
+        return fecha_hora
+
   
 
 class RegistroAsistenciaForm(forms.ModelForm):
