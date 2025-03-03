@@ -47,9 +47,7 @@ from django.http import HttpResponseForbidden
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.views.generic import TemplateView
-
-
-
+from operator import attrgetter
 
 
 def home(request):
@@ -890,12 +888,13 @@ def seleccionar_curso(request):
             request.session['asignatura_id'] = form.cleaned_data['asignatura'].id
             request.session['fecha_hora'] = form.cleaned_data['fecha_hora'].isoformat()
             return redirect('tomar_asistencia')
+        else:
+            # Depuración
+            print("Formulario inválido:", form.errors)
     else:
         form = AsistenciaSeleccionForm(usuario=request.user)
-    
+   
     return render(request, 'colegio/seleccionar_curso.html', {'form': form})
-
-
 
 @login_required
 def tomar_asistencia(request):
@@ -2244,11 +2243,14 @@ def generar_pdf(request, asignatura, bitacoras, user):
             titulo = "BITÁCORA - ACCESO RESTRINGIDO"
             profesor = ""
     
+    # Format current date for printing
+    fecha_actual = datetime.now().strftime("%d-%m-%Y")
+    
     # Create list of elements for PDF
     elements = []
     elements.append(Paragraph(titulo, style_heading))
     elements.append(Paragraph(profesor, style_normal))
-    elements.append(Paragraph(f"Fecha de impresión: {datetime.now().date()}", style_normal))
+    elements.append(Paragraph(f"Fecha de impresión: {fecha_actual}", style_normal))
     elements.append(Spacer(1, 12))
     
     # Calculate column widths with fixed widths only for fecha and observacion
@@ -2262,17 +2264,37 @@ def generar_pdf(request, asignatura, bitacoras, user):
     # Create table with bitácoras
     data = [["Fecha", "Asignatura", "Curso", "Observación"]]
     
+    # Preparar datos para ordenamiento
+    bitacoras_data = []
     for bitacora in bitacoras:
         asignatura_curso = str(bitacora.asignatura)
         partes = asignatura_curso.split(" - ")
         nombre_asignatura = partes[0]
         nombre_curso = partes[1] if len(partes) > 1 else "Sin curso"
         
+        bitacoras_data.append({
+            'bitacora': bitacora,
+            'curso': nombre_curso,
+            'asignatura': nombre_asignatura,
+            'fecha': bitacora.fecha
+        })
+    
+    # Ordenar bitácoras por curso, asignatura y fecha
+    bitacoras_ordenadas = sorted(
+        bitacoras_data,
+        key=lambda x: (x['curso'], x['asignatura'], x['fecha'])
+    )
+    
+    # Crear filas de la tabla con datos ordenados
+    for item in bitacoras_ordenadas:
+        # Format bitacora date
+        fecha_formateada = item['fecha'].strftime("%d-%m-%Y")
+        
         # Create paragraphs with appropriate styles
-        fecha_paragraph = Paragraph(str(bitacora.fecha), style_normal)
-        asignatura_paragraph = Paragraph(nombre_asignatura, style_normal)
-        curso_paragraph = Paragraph(nombre_curso, style_normal)
-        observacion_paragraph = Paragraph(bitacora.observacion, style_normal)
+        fecha_paragraph = Paragraph(fecha_formateada, style_normal)
+        asignatura_paragraph = Paragraph(item['asignatura'], style_normal)
+        curso_paragraph = Paragraph(item['curso'], style_normal)
+        observacion_paragraph = Paragraph(item['bitacora'].observacion, style_normal)
         
         data.append([fecha_paragraph, asignatura_paragraph, curso_paragraph, observacion_paragraph])
     

@@ -322,22 +322,40 @@ class AsistenciaSeleccionForm(forms.Form):
         label='Seleccione la asignatura',
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+    
     fecha_hora = forms.DateTimeField(
         label='Fecha y Hora',
         widget=forms.DateTimeInput(
             attrs={
                 'class': 'form-control',
                 'type': 'datetime-local',
-                'max': timezone.now().strftime('%Y-%m-%dT%H:%M'),  # Restricción en el HTML
+                # Eliminamos la restricción max del HTML
             }
         ),
         initial=timezone.now
     )
+    
     def __init__(self, *args, **kwargs):
         usuario = kwargs.pop('usuario', None)
         super().__init__(*args, **kwargs)
         if usuario:
             self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=usuario)
+    
+    def clean_fecha_hora(self):
+        fecha_hora = self.cleaned_data.get('fecha_hora')
+        ahora = timezone.now()
+        
+        # Verificamos que la fecha no sea posterior a la actual
+        if fecha_hora and fecha_hora > ahora:
+            raise forms.ValidationError("No puedes registrar asistencia para una fecha y hora futura.")
+        
+        # Si quieres permitir hasta X minutos/horas en el pasado:
+        # limite_pasado = ahora - datetime.timedelta(days=7)  # ejemplo: hasta 7 días atrás
+        # if fecha_hora and fecha_hora < limite_pasado:
+        #     raise forms.ValidationError("No puedes registrar asistencia para fechas anteriores a 7 días.")
+        
+        return fecha_hora    
+  
 
 class RegistroAsistenciaForm(forms.ModelForm):
     class Meta:
