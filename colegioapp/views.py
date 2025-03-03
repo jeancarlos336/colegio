@@ -2091,41 +2091,40 @@ def crear_bitacora(request):
         form = BitacoraSeleccionForm(usuario=request.user)
     return render(request, 'crear_bitacora.html', {'form': form})
 
-
 @login_required
 def listar_bitacora(request):
     # Obtener el término de búsqueda
     search_query = request.GET.get('search', '')
-    
+   
     # Filtrar las bitácoras según el rol del usuario
     if request.user.rol == 'DIRECTOR':
         bitacoras = Bitacora.objects.all()  # Obtiene todas las bitácoras
     else:
         bitacoras = Bitacora.objects.filter(usuario=request.user)  # Solo las del profesor
-    
+   
     # Aplicar búsqueda si existe un término
     if search_query:
         bitacoras = bitacoras.filter(
             Q(asignatura__nombre__icontains=search_query) |
             Q(observacion__icontains=search_query) |
             Q(fecha__icontains=search_query) |
-            # Agregamos búsqueda por nombre de profesor para el director
-            Q(usuario__nombre__icontains=search_query) |
-            Q(usuario__apellido__icontains=search_query)
+            # Cambiamos a first_name y last_name, que son los campos correctos
+            Q(usuario__first_name__icontains=search_query) |
+            Q(usuario__last_name__icontains=search_query)
         )
-    
+   
     # Ordenar por fecha descendente
     bitacoras = bitacoras.order_by('-fecha')
-    
+   
     # Configurar la paginación
     paginator = Paginator(bitacoras, 10)  # 10 items por página
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+   
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
-        'is_director': request.user.rol == 'DIRECTOR', 
+        'is_director': request.user.rol == 'DIRECTOR',
         'is_profesor': request.user.rol == 'PROFESOR' # Para usar en el template
     }
     return render(request, 'listar_bitacora.html', context)
