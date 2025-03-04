@@ -153,3 +153,5 @@ CSRF_TRUSTED_ORIGINS = [
 CORS_ALLOWED_ORIGINS = [
     f'http://{host}:8000' for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1', '0.0.0.0']
 ]
+
+ 
