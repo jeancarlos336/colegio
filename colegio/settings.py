@@ -155,7 +155,6 @@ CORS_ALLOWED_ORIGINS = [
     f'http://{host}:8000' for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1', '0.0.0.0']
 ]
 
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -163,15 +162,24 @@ LOGGING = {
         "file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": "debug.log",
+            "filename": "auth_debug.log",
         },
     },
     "loggers": {
-        "django": {
+        "django.security": {
+            "handlers": ["file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+        "django.db.backends": {
+            "handlers": ["file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+        "django.auth": {
             "handlers": ["file"],
             "level": "DEBUG",
             "propagate": True,
         },
     },
 }
- 
