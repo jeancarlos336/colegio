@@ -801,7 +801,7 @@ def generar_voucher_pdf(request, pago_id):
     
 #ASITENCIA
 
-class ListarAsistenciaView(LoginRequiredMixin,ListView):
+class ListarAsistenciaView(LoginRequiredMixin, ListView):
     model = RegistroAsistencia
     template_name = 'colegio/listar_asistencia.html'
     context_object_name = 'asistencias'
@@ -813,18 +813,31 @@ class ListarAsistenciaView(LoginRequiredMixin,ListView):
             'matricula__alumno',
             'asignatura'
         )
-
         buscar = self.request.GET.get('buscar', '')
         if buscar:
-            queryset = queryset.filter(
-                Q(matricula__alumno__first_name__icontains=buscar) |
-                Q(matricula__alumno__last_name__icontains=buscar) |
-                Q(matricula__alumno__rut__icontains=buscar) |
-                Q(asignatura__nombre__icontains=buscar) |
-                Q(estado__icontains=buscar) |
-                Q(fecha_hora__icontains=buscar)
-            )
-
+            # Intentar parsear la fecha si el formato coincide
+            try:
+                # Intenta convertir el formato "16-02-2025" al formato de datetime
+                fecha_parseada = datetime.strptime(buscar, '%d-%m-%Y')
+                queryset = queryset.filter(
+                    Q(matricula__alumno__first_name__icontains=buscar) |
+                    Q(matricula__alumno__last_name__icontains=buscar) |
+                    Q(matricula__alumno__rut__icontains=buscar) |
+                    Q(asignatura__nombre__icontains=buscar) |
+                    Q(estado__icontains=buscar) |
+                    Q(fecha_hora__date=fecha_parseada.date())
+                )
+            except ValueError:
+                # Si no es una fecha, realiza la búsqueda normal
+                queryset = queryset.filter(
+                    Q(matricula__alumno__first_name__icontains=buscar) |
+                    Q(matricula__alumno__last_name__icontains=buscar) |
+                    Q(matricula__alumno__rut__icontains=buscar) |
+                    Q(asignatura__nombre__icontains=buscar) |
+                    Q(estado__icontains=buscar) |
+                    Q(fecha_hora__icontains=buscar)
+                )
+        
         return queryset.order_by(
             'matricula__curso__nombre',
             '-fecha_hora',
@@ -834,7 +847,7 @@ class ListarAsistenciaView(LoginRequiredMixin,ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['buscar'] = self.request.GET.get('buscar', '')
-        
+       
         # Agrupar asistencias por curso
         asistencias_por_curso = {}
         for asistencia in context['asistencias']:
@@ -842,10 +855,11 @@ class ListarAsistenciaView(LoginRequiredMixin,ListView):
             if curso_nombre not in asistencias_por_curso:
                 asistencias_por_curso[curso_nombre] = []
             asistencias_por_curso[curso_nombre].append(asistencia)
-        
+       
         context['asistencias_por_curso'] = asistencias_por_curso
         return context
-
+    
+    
 class EliminarAsistenciaView(DeleteView):
     model = RegistroAsistencia
     success_url = reverse_lazy('listar_asistencia')
