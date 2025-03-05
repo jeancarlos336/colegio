@@ -14,6 +14,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key-change-me')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 #ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
+# Duración de la sesión (5 minutos)
+SESSION_COOKIE_AGE = 300  # 5 minutos en segundos
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 
 # Manejo más robusto de ALLOWED_HOSTS
@@ -62,6 +66,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
+    "colegioapp.middleware.SessionTimeoutMiddleware",
 ]
 
 ROOT_URLCONF = "colegio.urls"
