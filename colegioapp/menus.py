@@ -98,7 +98,8 @@ MENUS = {
                 'submenu': [                    
                     {'name': 'Tomar Asistencia', 'url': 'seleccionar_curso'},
                     {'name': 'Informe de Asistencia', 'url': 'generar_informe'},
-                    {'name': 'Listar Asistencia', 'url': 'listar_asistencia'},                     
+                    {'name': 'Listar Asistencia', 'url': 'listar_asistencia'},     
+                    {'name': 'Asistencia x Curso', 'url': 'informe_asistencia'},                 
                 ]
             },
              {
@@ -132,7 +133,17 @@ MENUS = {
                     {'name': 'Listar Anotaciones', 'url': 'lista_anotaciones'},
                     {'name': 'Crear Anotaciones', 'url': 'crear_anotacion'},                            
                 ]
-            }                   
+            },
+            {
+                'label': 'Bitacora',
+                'url': 'menu_Bitacora',
+                'icon': 'fa fa-address-card',
+                'submenu': [   
+                    {'name': 'Listar Bitacora', 'url': 'listar_bitacora'},                 
+                    {'name': 'Crear Bitacora', 'url': 'crear_bitacora'},    
+                     {'name': 'Informe Bitacora', 'url': 'generar_informe_bitacora'},                           
+                ]
+            }                           
         ],
         
 
@@ -244,7 +255,8 @@ MENUS = {
                 'icon': 'fa fa-th',
                 'submenu': [                   
                     {'name': 'Informe de Asistencia', 'url': 'generar_informe'},
-                    {'name': 'Listar Asistencia', 'url': 'listar_asistencia'},   
+                    {'name': 'Listar Asistencia', 'url': 'listar_asistencia'},  
+                    {'name': 'Asistencia x Curso', 'url': 'informe_asistencia'},  
                                      
                 ]
             },
