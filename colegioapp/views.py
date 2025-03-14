@@ -2372,9 +2372,10 @@ class InformeAsistenciaView(LoginRequiredMixin, View):
             fecha_inicio = form.cleaned_data['fecha_inicio']
             fecha_fin = form.cleaned_data['fecha_fin']
             
+            
             # Combinar la fecha con la hora completa
-            fecha_inicio_dt = datetime.combine(fecha_inicio, time.min)
-            fecha_fin_dt = datetime.combine(fecha_fin, time.max)
+            fecha_inicio_dt = datetime.combine(fecha_inicio, time.min).replace(tzinfo=timezone.get_current_timezone())
+            fecha_fin_dt = datetime.combine(fecha_fin, time.max).replace(tzinfo=timezone.get_current_timezone())
             
             # Obtener todas las matrículas activas de este curso para el año actual
             año_actual = timezone.now().year
@@ -2471,10 +2472,11 @@ class InformeAsistenciaView(LoginRequiredMixin, View):
         curso = Curso.objects.get(id=curso_id)
         fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
         fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+
+        # Combinar con horas y añadir la zona horaria
+        fecha_inicio_dt = datetime.combine(fecha_inicio_dt, time.min).replace(tzinfo=timezone.get_current_timezone())
+        fecha_fin_dt = datetime.combine(fecha_fin_dt, time.max).replace(tzinfo=timezone.get_current_timezone())
         
-        # Combinar con horas
-        fecha_inicio_dt = datetime.combine(fecha_inicio_dt, time.min)
-        fecha_fin_dt = datetime.combine(fecha_fin_dt, time.max)
         
         # Obtener matrículas activas
         año_actual = timezone.now().year
