@@ -153,7 +153,8 @@ MENUS = {
                 'submenu': [
                     {'name': 'Tomar Asistencia', 'url': 'seleccionar_curso'},
                     {'name': 'Informe de Asistencia', 'url': 'generar_informe'},
-                    {'name': 'Listar Asistencia', 'url': 'listar_asistencia'},   
+                    {'name': 'Listar Asistencia', 'url': 'listar_asistencia'},
+                    {'name': 'Asistencia x Curso', 'url': 'informe_asistencia'},      
                                      
                 ]
             },

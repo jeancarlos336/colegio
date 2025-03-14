@@ -6,10 +6,10 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth import logout
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from .forms import UsuarioForm,EditarUsuarioForm,BitacoraForm, AnotacionForm,BitacoraSeleccionForm,EvaluacionForm,EditarAsistenciaForm,InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
+from .forms import UsuarioForm,EditarUsuarioForm,BitacoraForm,InformeAsistenciaxcursoForm, AnotacionForm,BitacoraSeleccionForm,EvaluacionForm,EditarAsistenciaForm,InformeAsistenciaForm,SedeForm,CalificacionFormSet, CertificadoForm,CursoForm,ParametrosInformeAlumnoForm,ParametrosInformeForm,CalificacionSeleccionForm,AsignaturaForm,DiaSemanaForm,AsistenciaSeleccionForm,RegistroAsistenciaFormSet,MatriculaForm,AsignacionForm,HorarioForm, HorarioFiltroForm,PagoMensualidadForm, PagoMensualidadFiltroForm
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView,DetailView,FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, Case, When, IntegerField, F
 from django.utils import timezone
 import os
 from django.http import FileResponse, HttpResponse, Http404
@@ -24,7 +24,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from io import BytesIO
 from decimal import Decimal
 from django.http import JsonResponse
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
 from django.views import View
 from collections import defaultdict
 import calendar
@@ -48,6 +48,7 @@ from django.db import transaction
 from django.db.utils import IntegrityError
 from django.views.generic import TemplateView
 from operator import attrgetter
+import xlwt
 
 
 def home(request):
@@ -2342,3 +2343,205 @@ def generar_pdf(request, asignatura, bitacoras, user):
     pdf_response['Content-Disposition'] = f'inline; filename="bitacora.pdf"'
     
     return pdf_response
+
+
+#informe de asistencia x curso
+
+
+class InformeAsistenciaView(LoginRequiredMixin, View):
+    template_name = 'informe_asistenciaxcurso.html'
+    form_class = InformeAsistenciaxcursoForm
+    
+    def get(self, request):
+        # Verificar si se solicita descargar Excel
+        if 'descargar' in request.GET and request.GET['descargar'] == 'excel':
+            curso_id = request.GET.get('curso')
+            fecha_inicio = request.GET.get('fecha_inicio')
+            fecha_fin = request.GET.get('fecha_fin')
+            return self.exportar_informe_excel(request, curso_id, fecha_inicio, fecha_fin)
+        
+        # Si no, mostrar el formulario normal
+        form = self.form_class()
+        context = {'form': form}
+        return render(request, self.template_name, context)
+    
+    def post(self, request):
+        form = self.form_class(request.POST)
+        if form.is_valid():
+            curso = form.cleaned_data['curso']
+            fecha_inicio = form.cleaned_data['fecha_inicio']
+            fecha_fin = form.cleaned_data['fecha_fin']
+            
+            # Combinar la fecha con la hora completa
+            fecha_inicio_dt = datetime.combine(fecha_inicio, time.min)
+            fecha_fin_dt = datetime.combine(fecha_fin, time.max)
+            
+            # Obtener todas las matrículas activas de este curso para el año actual
+            año_actual = timezone.now().year
+            matriculas = Matricula.objects.filter(
+                curso=curso,
+                estado='ACTIVO',
+                año=año_actual
+            )
+            
+      
+            # Obtener el número total de clases únicas en el período
+            total_clases = RegistroAsistencia.objects.filter(
+                matricula__curso=curso,
+                fecha_hora__range=(fecha_inicio_dt, fecha_fin_dt)
+            ).values('fecha_hora', 'asignatura').distinct().count()
+            
+            # Resultados para cada alumno
+            resultados = []
+            for matricula in matriculas:
+                # Contar presentes
+                presentes = RegistroAsistencia.objects.filter(
+                    matricula=matricula,
+                    fecha_hora__range=(fecha_inicio_dt, fecha_fin_dt),
+                    estado='PRESENTE'
+                ).count()
+                
+                # Contar justificados
+                justificados = RegistroAsistencia.objects.filter(
+                    matricula=matricula,
+                    fecha_hora__range=(fecha_inicio_dt, fecha_fin_dt),
+                    estado='JUSTIFICADO'
+                ).count()
+                
+                # Contar ausentes
+                ausentes = RegistroAsistencia.objects.filter(
+                    matricula=matricula,
+                    fecha_hora__range=(fecha_inicio_dt, fecha_fin_dt),
+                    estado='AUSENTE'
+                ).count()
+                
+                # Total de registros para este alumno
+                total_registros = presentes + ausentes + justificados
+                
+               
+                # Calcular porcentaje de asistencia (presentes + justificados dividido por total de registros)
+                porcentaje_asistencia = 0
+                if total_registros > 0:  # Cambiamos total_clases por total_registros
+                    porcentaje_asistencia = round(((presentes + justificados) / total_registros) * 100, 2)
+                
+                resultados.append({
+                    'alumno': matricula.alumno,
+                    'presentes': presentes,
+                    'justificados': justificados,
+                    'ausentes': ausentes,
+                    'total_registros': total_registros,
+                    'porcentaje_asistencia': porcentaje_asistencia
+                })
+            
+            context = {
+                'form': form,
+                'resultados': resultados,
+                'curso': curso,
+                'fecha_inicio': fecha_inicio,
+                'fecha_fin': fecha_fin,
+                'total_clases': total_clases
+            }
+            return render(request, 'resultado_informe.html', context)
+        
+        return render(request, self.template_name, {'form': form})
+    
+    def exportar_informe_excel(self, request, curso_id, fecha_inicio, fecha_fin):
+        """
+        Genera un archivo Excel con el informe de asistencia
+        """
+        response = HttpResponse(content_type='application/ms-excel')
+        response['Content-Disposition'] = f'attachment; filename="informe_asistencia_{curso_id}_{fecha_inicio}_{fecha_fin}.xls"'
+        
+        wb = xlwt.Workbook(encoding='utf-8')
+        ws = wb.add_sheet('Informe de Asistencia')
+        
+        # Estilo para cabeceras
+        header_style = xlwt.easyxf('font: bold on; align: wrap on, vert centre, horiz center; pattern: pattern solid, fore_color gray25')
+        date_style = xlwt.easyxf(num_format_str='DD/MM/YYYY')
+        percent_style = xlwt.easyxf(num_format_str='0.00%')
+        
+        # Cabeceras
+        row_num = 0
+        columns = ['Alumno', 'Presente', 'Justificado', 'Ausente', 'Total Registros', '% Asistencia']
+        
+        for col_num, column_title in enumerate(columns):
+            ws.write(row_num, col_num, column_title, header_style)
+        
+        # Obtener curso y fechas
+        curso = Curso.objects.get(id=curso_id)
+        fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+        fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+        
+        # Combinar con horas
+        fecha_inicio_dt = datetime.combine(fecha_inicio_dt, time.min)
+        fecha_fin_dt = datetime.combine(fecha_fin_dt, time.max)
+        
+        # Obtener matrículas activas
+        año_actual = timezone.now().year
+        matriculas = Matricula.objects.filter(
+            curso=curso,
+            estado='ACTIVO',
+            año=año_actual
+        )
+        
+        # Asignaturas y días con registros
+        asignaturas = Asignatura.objects.filter(curso=curso)
+        dias_con_registros = RegistroAsistencia.objects.filter(
+            matricula__curso=curso,
+            fecha_hora__range=(fecha_inicio_dt, fecha_fin_dt)
+        ).dates('fecha_hora', 'day').count()
+        
+        total_clases = dias_con_registros * asignaturas.count()
+        
+        # Datos de cada alumno
+        for matricula in matriculas:
+            row_num += 1
+            
+            # Contar estados
+            presentes = RegistroAsistencia.objects.filter(
+                matricula=matricula,
+                fecha_hora__range=(fecha_inicio_dt, fecha_fin_dt),
+                estado='PRESENTE'
+            ).count()
+            
+            justificados = RegistroAsistencia.objects.filter(
+                matricula=matricula,
+                fecha_hora__range=(fecha_inicio_dt, fecha_fin_dt),
+                estado='JUSTIFICADO'
+            ).count()
+            
+            ausentes = RegistroAsistencia.objects.filter(
+                matricula=matricula,
+                fecha_hora__range=(fecha_inicio_dt, fecha_fin_dt),
+                estado='AUSENTE'
+            ).count()
+            
+            total_registros = presentes + ausentes + justificados            
+    
+            
+            # Calcular porcentaje
+            porcentaje_asistencia = 0
+            if total_registros > 0:  # Cambiar total_clases por total_registros
+                porcentaje_asistencia = (presentes + justificados) / total_registros
+            
+            # Escribir en Excel - ajustar según la estructura de tu modelo Usuario
+            nombre_alumno = ""
+            if hasattr(matricula.alumno, 'get_full_name'):
+                nombre_alumno = matricula.alumno.get_full_name()
+            else:
+                nombre_alumno = str(matricula.alumno)
+            
+            ws.write(row_num, 0, nombre_alumno)
+            ws.write(row_num, 1, presentes)
+            ws.write(row_num, 2, justificados)
+            ws.write(row_num, 3, ausentes)
+            ws.write(row_num, 4, total_registros)
+            ws.write(row_num, 5, porcentaje_asistencia, percent_style)
+        
+        # Agregar encabezado con información del informe
+        ws.write(row_num + 2, 0, f"Curso: {curso}")
+        ws.write(row_num + 3, 0, f"Período: {fecha_inicio} al {fecha_fin}")
+        ws.write(row_num + 4, 0, f"Total clases: {total_clases}")
+        
+        wb.save(response)
+        return response

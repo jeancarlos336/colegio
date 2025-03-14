@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Informe de Asistencia{% endblock %}
+
+{% block contenido %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3 class="card-title mb-0">Informe de Asistencia por Curso</h3>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.curso.id_for_label }}">{{ form.curso.label }}</label>
+                        {{ form.curso }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.fecha_inicio.id_for_label }}">{{ form.fecha_inicio.label }}</label>
+                        {{ form.fecha_inicio }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.fecha_fin.id_for_label }}">{{ form.fecha_fin.label }}</label>
+                        {{ form.fecha_fin }}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Generar Informe</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

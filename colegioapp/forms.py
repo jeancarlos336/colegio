@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.forms import modelformset_factory,formset_factory
 from calendar import month_name
 from datetime import timedelta
+from django.forms.widgets import DateInput
 
 class SedeForm(forms.ModelForm):
     class Meta:
@@ -766,3 +767,21 @@ class BitacoraForm(forms.Form):
                 self.fields['asignatura'].queryset = Asignatura.objects.filter(profesor=user)
             else:
                 self.fields['asignatura'].queryset = Asignatura.objects.all()
+                
+                
+
+
+class InformeAsistenciaxcursoForm(forms.Form):
+    curso = forms.ModelChoiceField(
+        queryset=Curso.objects.all(),
+        label="Curso",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    fecha_inicio = forms.DateField(
+        label="Fecha Inicio",
+        widget=DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    fecha_fin = forms.DateField(
+        label="Fecha Fin",
+        widget=DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )

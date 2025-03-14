@@ -63,7 +63,7 @@ from colegioapp.views import (
     lista_anotaciones,detalle_anotacion,EditarAnotacionView,eliminar_anotacion,CrearAnotacionView, get_alumnos_curso,
     
     # Asistencia views
-    tomar_asistencia, seleccionar_curso,ListarAsistenciaView, EliminarAsistenciaView,EditarAsistenciaView,    
+    tomar_asistencia, seleccionar_curso,ListarAsistenciaView, EliminarAsistenciaView,EditarAsistenciaView, InformeAsistenciaView,   
 
     #evaluciones
     EvaluacionListView, EvaluacionCreateView, EvaluacionDetailView, EvaluacionUpdateView, EvaluacionDeleteView, TodasEvaluacionListView,  
@@ -220,6 +220,9 @@ urlpatterns = [
     path('bitacora/editar/<int:pk>/', editar_bitacora, name='editar_bitacora'),
     path('bitacora/eliminar/<int:pk>/', eliminar_bitacora, name='eliminar_bitacora'),
     path('informe/', generar_informe_bitacora, name='generar_informe_bitacora'), 
+    
+    
+    path('informe-asistencia/', InformeAsistenciaView.as_view(), name='informe_asistencia'),
    
 ]
 
