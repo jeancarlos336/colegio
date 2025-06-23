@@ -1368,9 +1368,8 @@ def generar_informe_notas_alumno(request, alumno_id, año, semestre):
     
     alumno_info = Paragraph(
         f"""
-        <b>Alumno:</b> {alumno.get_full_name()}<br/>
-        <b>Profesor Jefe:</b> {profesor_jefe}<br/>
-        <b>Curso:</b> {curso_nombre}<br/>  
+        <b>Alumno:</b> {alumno.get_full_name()}<br/> 
+        <b>Nivel:</b> {curso_nombre}<br/>  
         <b>Año:</b> {curso_año}
         """,
         alumno_info_style
@@ -1488,8 +1487,8 @@ def generar_informe_notas_alumno(request, alumno_id, año, semestre):
     firma = Paragraph(f"""
     <para alignment="center">
     _______________________<br/>
-    {profesor_jefe}<br/>
-    Profesor Jefe
+    <br/>
+    Equipo Directivo
     </para>
     """, styles['Normal'])
     elements.append(firma)
